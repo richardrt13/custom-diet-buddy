@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, LogIn, UserPlus } from "lucide-react";
+import { Heart, LogIn, UserPlus, KeyRound } from "lucide-react";
 
-type AuthMode = "login" | "signup";
+type AuthMode = "login" | "signup" | "forgot_password";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -29,53 +29,78 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    let error = null;
+    if (authMode === "forgot_password") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-    if (authMode === "login") { 
+      if (error) {
+        toast({
+          title: "Erro",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "E-mail enviado!",
+          description: "Verifique sua caixa de entrada para redefinir a senha.",
+        });
+        setAuthMode("login");
+      }
+    } else {
+      let error = null;
+
+      if (authMode === "login") {
         const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
+          email,
+          password,
         });
         error = signInError;
-    } else { 
+      } else {
         const { error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
+          email,
+          password,
         });
         error = signUpError;
-    }
+      }
 
-
-    if (error) {
-      toast({
-        title: `Erro de ${
-          authMode === "login" ? "autenticação" : "cadastro"
-        }`,
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title:
-          authMode === "login"
-            ? "Login bem-sucedido!"
-            : "Cadastro realizado!",
-        description:
-          authMode === "login"
-            ? "Redirecionando para o painel."
-            : "Verifique seu e-mail para confirmar a conta.",
-      });
-      if (authMode === "login") {
-        navigate("/");
+      if (error) {
+        toast({
+          title: `Erro de ${
+            authMode === "login" ? "autenticação" : "cadastro"
+          }`,
+          description: error.message,
+          variant: "destructive",
+        });
       } else {
-        setAuthMode("login"); // Switch to login after successful sign-up
+        toast({
+          title:
+            authMode === "login"
+              ? "Login bem-sucedido!"
+              : "Cadastro realizado!",
+          description:
+            authMode === "login"
+              ? "Redirecionando para o painel."
+              : "Verifique seu e-mail para confirmar a conta.",
+        });
+        if (authMode === "login") {
+          navigate("/");
+        } else {
+          setAuthMode("login"); // Switch to login after successful sign-up
+        }
       }
     }
     setLoading(false);
   };
 
   const toggleAuthMode = () => {
-    setAuthMode(authMode === "login" ? "signup" : "login");
+    setAuthMode(
+      authMode === "login"
+        ? "signup"
+        : authMode === "signup"
+        ? "login"
+        : "login"
+    );
     setEmail("");
     setPassword("");
   };
@@ -96,12 +121,15 @@ export default function Login() {
             </div>
           </div>
           <CardTitle>
-            {authMode === "login" ? "Acesse sua conta" : "Crie sua conta"}
+            {authMode === "login" && "Acesse sua conta"}
+            {authMode === "signup" && "Crie sua conta"}
+            {authMode === "forgot_password" && "Recuperar Senha"}
           </CardTitle>
           <CardDescription>
-            {authMode === "login"
-              ? "Bem-vindo de volta!"
-              : "Comece a criar planos hoje mesmo."}
+            {authMode === "login" && "Bem-vindo de volta!"}
+            {authMode === "signup" && "Comece a criar planos hoje mesmo."}
+            {authMode === "forgot_password" &&
+              "Enviaremos um link para o seu e-mail para redefinir a senha."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -117,36 +145,50 @@ export default function Login() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-              />
-            </div>
+            {authMode !== "forgot_password" && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading
                 ? "Processando..."
                 : authMode === "login"
                 ? "Entrar"
-                : "Criar conta"}
-              {authMode === "login" ? (
-                <LogIn className="ml-2 h-4 w-4" />
-              ) : (
-                <UserPlus className="ml-2 h-4 w-4" />
+                : authMode === "signup"
+                ? "Criar conta"
+                : "Enviar link"}
+              {authMode === "login" && <LogIn className="ml-2 h-4 w-4" />}
+              {authMode === "signup" && <UserPlus className="ml-2 h-4 w-4" />}
+              {authMode === "forgot_password" && (
+                <KeyRound className="ml-2 h-4 w-4" />
               )}
             </Button>
           </form>
+          {authMode === "login" && (
+            <Button
+              variant="link"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => setAuthMode("forgot_password")}
+            >
+              Esqueceu sua senha?
+            </Button>
+          )}
         </CardContent>
         <CardFooter>
           <Button variant="link" className="w-full" onClick={toggleAuthMode}>
-            {authMode === "login"
-              ? "Não tem uma conta? Cadastre-se"
-              : "Já tem uma conta? Faça login"}
+            {authMode === "login" && "Não tem uma conta? Cadastre-se"}
+            {authMode === "signup" && "Já tem uma conta? Faça login"}
+            {authMode === "forgot_password" && "Lembrou a senha? Faça login"}
           </Button>
         </CardFooter>
       </Card>

@@ -1,5 +1,5 @@
 // src/components/NutritionPlanForm.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,18 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Utensils, Target, Zap, Plus, X, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+
+interface Patient {
+  id: string;
+  name: string;
+}
+
+interface NutritionPlanFormProps {
+  patient?: Patient | null; // Paciente agora é opcional
+  onPlanGenerated: (plan: any, patientId: string) => void;
+}
 
 const COMMON_FOODS = [
   "Arroz", "Feijão", "Frango", "Ovos", "Leite", "Banana", "Maçã", "Brócolis",
@@ -31,12 +43,10 @@ const MACRO_PRIORITIES = [
   { value: "fiber", label: "Fibras", icon: "🥬" }
 ];
 
-interface NutritionPlanFormProps {
-  patientName: string; // Receber o nome do paciente como propriedade
-  onPlanGenerated: (plan: any) => void;
-}
 
-export default function NutritionPlanForm({ patientName, onPlanGenerated }: NutritionPlanFormProps) {
+export default function NutritionPlanForm({ patient, onPlanGenerated }: NutritionPlanFormProps) {
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | undefined>(patient?.id);
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [customFood, setCustomFood] = useState("");
   const [maxCalories, setMaxCalories] = useState("");
@@ -44,6 +54,23 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
   const [macroPriority, setMacroPriority] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!patient) {
+      fetchPatients();
+    } else {
+        setSelectedPatientId(patient.id)
+    }
+  }, [patient]);
+  
+  const fetchPatients = async () => {
+      const { data, error } = await supabase.from('patients').select('id, name');
+      if (error) {
+          toast({ title: "Erro ao buscar pacientes", variant: "destructive" });
+      } else {
+          setPatients(data || []);
+      }
+  };
 
   const handleFoodToggle = (food: string) => {
     setSelectedFoods(prev =>
@@ -65,6 +92,14 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
   };
 
   const generatePlan = async () => {
+    const finalPatientId = patient?.id || selectedPatientId;
+    const patientName = patient?.name || patients.find(p => p.id === selectedPatientId)?.name;
+
+    if (!finalPatientId || !patientName) {
+        toast({ title: "Selecione um paciente.", variant: "destructive" });
+        return;
+    }
+
     if (!maxCalories || !mealType || !macroPriority || selectedFoods.length === 0) {
       toast({
         title: "Campos obrigatórios",
@@ -98,7 +133,6 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
       const planData = await response.json();
 
       const newPlan = {
-        // As informações do paciente já estão no componente pai (Index.tsx)
         patientName,
         maxCalories: parseInt(maxCalories),
         mealType,
@@ -108,7 +142,7 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
         meals: planData.meals
       };
 
-      onPlanGenerated(newPlan); // Envia os detalhes do plano para serem salvos
+      onPlanGenerated(newPlan, finalPatientId);
 
     } catch (error) {
       console.error(error);
@@ -131,21 +165,32 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
-        {/* Patient Info */}
-        <div className="p-4 border rounded-lg bg-muted/50">
-          <Label className="text-sm font-medium text-muted-foreground">
-            Paciente
-          </Label>
-          <div className="flex items-center gap-2 mt-1">
-             <User className="h-5 w-5 text-primary" />
-             <p className="text-lg font-semibold">{patientName}</p>
+        {patient ? (
+          <div className="p-4 border rounded-lg bg-muted/50">
+            <Label className="text-sm font-medium text-muted-foreground">Paciente</Label>
+            <div className="flex items-center gap-2 mt-1">
+               <User className="h-5 w-5 text-primary" />
+               <p className="text-lg font-semibold">{patient.name}</p>
+            </div>
           </div>
-        </div>
-
+        ) : (
+          <div className="space-y-2">
+            <Label className="text-base font-medium">Selecione o Paciente *</Label>
+            <Select onValueChange={setSelectedPatientId} value={selectedPatientId}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Escolha um paciente..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {patients.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <Separator />
 
-        {/* Available Foods */}
         <div className="space-y-4">
           <Label className="text-base font-medium">Alimentos Disponíveis *</Label>
 
@@ -197,7 +242,6 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
 
         <Separator />
 
-        {/* Meal Configuration */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="text-base font-medium flex items-center gap-2">
@@ -233,7 +277,6 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
           </div>
         </div>
 
-        {/* Macro Priority */}
         <div className="space-y-3">
           <Label className="text-base font-medium">Prioridade Nutricional *</Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -253,7 +296,6 @@ export default function NutritionPlanForm({ patientName, onPlanGenerated }: Nutr
 
         <Separator />
 
-        {/* Generate Button */}
         <Button
           onClick={generatePlan}
           disabled={isGenerating}

@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import PlanDisplay from "@/components/PlanDisplay"; // Importe o componente de exibição
+import PlanDisplay from "@/components/PlanDisplay";
 
 interface Patient {
   id: string;
@@ -37,11 +37,10 @@ interface Metric {
   notes: string | null;
 }
 
-// Interface para o plano salvo
 interface SavedPlan {
     id: string;
     created_at: string;
-    plan_details: any; // O JSONB será deserializado aqui
+    plan_details: any;
 }
 
 export default function PatientDetails() {
@@ -50,8 +49,8 @@ export default function PatientDetails() {
   const { toast } = useToast();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [plans, setPlans] = useState<SavedPlan[]>([]); // Estado para os planos
-  const [selectedPlan, setSelectedPlan] = useState<any>(null); // Estado para o plano a ser exibido no modal
+  const [plans, setPlans] = useState<SavedPlan[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [isPlanModalOpen, setPlanModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isMetricDialogOpen, setMetricDialogOpen] = useState(false);
@@ -83,7 +82,6 @@ export default function PatientDetails() {
     }
     setPatient(patientData);
 
-    // Buscar Métricas
     const { data: metricsData, error: metricsError } = await supabase
       .from('patient_metrics')
       .select('*')
@@ -100,8 +98,7 @@ export default function PatientDetails() {
             setNewHeight(latestMetric.height?.toString() || "");
         }
     }
-
-    // Buscar Planos
+    
     const { data: plansData, error: plansError } = await supabase
       .from('plans')
       .select('*')
@@ -125,7 +122,6 @@ export default function PatientDetails() {
 
 
   const handleSaveMetric = async () => {
-    // ... (função sem alteração)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !patientId) return;
 
@@ -143,7 +139,7 @@ export default function PatientDetails() {
     } else {
         toast({ title: "Sucesso!", description: "Nova medição salva." });
         setMetricDialogOpen(false);
-        fetchPatientData(); // Recarrega os dados para mostrar a nova medição
+        fetchPatientData();
     }
   };
 
@@ -264,7 +260,6 @@ export default function PatientDetails() {
                 </CardContent>
             </Card>
 
-            {/* Nova Seção de Planos Alimentares */}
              <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><FileText /> Planos Alimentares Salvos</CardTitle>
@@ -293,7 +288,6 @@ export default function PatientDetails() {
         </div>
       )}
 
-       {/* Modal para Visualizar Plano */}
         <Dialog open={isPlanModalOpen} onOpenChange={setPlanModalOpen}>
             <DialogContent className="max-w-4xl">
                 <DialogHeader>
@@ -301,9 +295,7 @@ export default function PatientDetails() {
                 </DialogHeader>
                 {selectedPlan && <PlanDisplay plan={selectedPlan} />}
                  <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">Fechar</Button>
-                    </DialogClose>
+                    <DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

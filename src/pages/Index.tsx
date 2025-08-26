@@ -132,6 +132,24 @@ const Index = () => {
       }
   };
 
+  const handleSavePlan = async (updatedPlanDetails: any) => {
+    if (!viewingPlan) return;
+
+    const { error } = await supabase
+      .from('plans')
+      .update({ plan_details: updatedPlanDetails })
+      .eq('id', viewingPlan.id);
+
+    if (error) {
+      toast({ title: "Erro ao salvar o plano", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Sucesso!", description: "Plano alimentar atualizado." });
+      setPlanModalOpen(false);
+      fetchAllPlans();
+    }
+  };
+
+
   const handleDeletePlan = async (planId: string) => {
     const { error } = await supabase.from('plans').delete().eq('id', planId);
 
@@ -337,10 +355,7 @@ const Index = () => {
                 <DialogHeader>
                     <DialogTitle>Detalhes do Plano Alimentar</DialogTitle>
                 </DialogHeader>
-                {viewingPlan && <PlanDisplay plan={viewingPlan.plan_details} />}
-                 <DialogFooter>
-                    <DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose>
-                </DialogFooter>
+                {viewingPlan && <PlanDisplay plan={viewingPlan.plan_details} onSave={handleSavePlan}/>}
             </DialogContent>
         </Dialog>
     </div>

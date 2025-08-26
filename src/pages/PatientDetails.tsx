@@ -50,7 +50,7 @@ export default function PatientDetails() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [plans, setPlans] = useState<SavedPlan[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [selectedPlan, setSelectedPlan] = useState<SavedPlan | null>(null);
   const [isPlanModalOpen, setPlanModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isMetricDialogOpen, setMetricDialogOpen] = useState(false);
@@ -115,9 +115,26 @@ export default function PatientDetails() {
     setLoading(false);
   };
   
-  const handleViewPlan = (planDetails: any) => {
-    setSelectedPlan(planDetails);
+  const handleViewPlan = (plan: SavedPlan) => {
+    setSelectedPlan(plan);
     setPlanModalOpen(true);
+  };
+  
+  const handleSavePlan = async (updatedPlanDetails: any) => {
+    if (!selectedPlan) return;
+
+    const { error } = await supabase
+      .from('plans')
+      .update({ plan_details: updatedPlanDetails })
+      .eq('id', selectedPlan.id);
+
+    if (error) {
+      toast({ title: "Erro ao salvar o plano", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Sucesso!", description: "Plano alimentar atualizado." });
+      setPlanModalOpen(false);
+      fetchPatientData(); // Re-fetch data to show updated plan
+    }
   };
 
 
@@ -273,7 +290,7 @@ export default function PatientDetails() {
                                        <p className="font-medium">Plano de {new Date(plan.created_at).toLocaleDateString('pt-BR')}</p>
                                        <p className="text-sm text-muted-foreground">{plan.plan_details.maxCalories} kcal - Foco: {plan.plan_details.macroPriority}</p>
                                    </div>
-                                   <Button variant="secondary" size="sm" onClick={() => handleViewPlan(plan.plan_details)}>
+                                   <Button variant="secondary" size="sm" onClick={() => handleViewPlan(plan)}>
                                         Visualizar
                                    </Button>
                                </div>
@@ -293,10 +310,7 @@ export default function PatientDetails() {
                 <DialogHeader>
                     <DialogTitle>Detalhes do Plano Alimentar</DialogTitle>
                 </DialogHeader>
-                {selectedPlan && <PlanDisplay plan={selectedPlan} />}
-                 <DialogFooter>
-                    <DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose>
-                </DialogFooter>
+                {selectedPlan && <PlanDisplay plan={selectedPlan.plan_details} onSave={handleSavePlan} />}
             </DialogContent>
         </Dialog>
 

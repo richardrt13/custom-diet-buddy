@@ -77,7 +77,7 @@ export default async function handler(req: Request) {
         - **Café da Manhã:** Deve conter uma fonte de carboidrato (pão, tapioca, cuscuz) e uma de proteína (ovos, queijo, leite). Não inclua itens típicos de almoço/jantar.
         - **Almoço/Jantar:** Deve conter uma fonte de carboidrato, uma de proteína e vegetais.
         - **Lanche:** Deve ser uma refeição leve, como frutas, iogurte ou uma pequena porção de carboidrato.
-    2.  **Quantidades:** Use quantidades realistas e comuns na culinária brasileira (ex: "1 concha média", "2 fatias", "1 filé médio").
+    2.  - **Diretriz de Quantidades:** Use medidas precisas como gramas (g), quilogramas (kg), mililitros (ml) ou unidades (ex: "1 unidade", "2 fatias").
     3.  **JSON Válido:** A saída DEVE ser um objeto JSON válido, sem nenhum texto ou formatação adicional. O JSON deve começar com "{" e terminar com "}".
 
     **Formato de Saída (JSON):**

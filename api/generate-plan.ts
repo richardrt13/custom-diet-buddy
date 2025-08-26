@@ -76,7 +76,7 @@ export default async function handler(req: Request) {
       }
 
       **Instruções Adicionais:**
-      - O total de calorias do plano não deve exceder ${maxCalories}.
+      - O total de calorias do plano não deve exceder ${maxCalories}, porém deve ser o mais próximo possível disso.
       - Utilize **apenas** os alimentos fornecidos em "Alimentos Disponíveis".
       - Sempre que possível, monte a refeição de forma **equilibrada** com pelo menos:
         - 1 fonte de carboidrato (ex: arroz, pão, batata, mandioca, fruta);

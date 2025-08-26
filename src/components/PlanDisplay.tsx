@@ -1,3 +1,4 @@
+// src/components/PlanDisplay.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ interface PlanDisplayProps {
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: "Café da manhã",
-  lunch: "Almoço", 
+  lunch: "Almoço",
   dinner: "Jantar",
   snack: "Lanche",
   all: "Todas as refeições"
@@ -38,25 +39,30 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
 
 const MACRO_LABELS: Record<string, string> = {
   carbs: "Carboidratos",
-  protein: "Proteínas", 
+  protein: "Proteínas",
   fats: "Gorduras",
   fiber: "Fibras"
 };
 
 export default function PlanDisplay({ plan }: PlanDisplayProps) {
-  const totalCalories = plan.meals.reduce((total, meal) => 
+  const totalCalories = plan.meals.reduce((total, meal) =>
     total + meal.foods.reduce((mealTotal, food) => mealTotal + food.calories, 0), 0
   );
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    // CORREÇÃO: Garante que a data seja um objeto Date válido
+    const validDate = typeof date === 'string' ? new Date(date) : date;
+    if (!validDate || isNaN(validDate.getTime())) return "Data inválida";
+
     return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
-      month: '2-digit', 
+      month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).format(date);
+    }).format(validDate);
   };
+
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-medium">
@@ -77,7 +83,7 @@ export default function PlanDisplay({ plan }: PlanDisplayProps) {
             </Button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
@@ -118,7 +124,7 @@ export default function PlanDisplay({ plan }: PlanDisplayProps) {
         {/* Meals */}
         <div className="space-y-6">
           <h3 className="text-xl font-semibold">Refeições Planejadas</h3>
-          
+
           {plan.meals.map((meal, mealIndex) => (
             <Card key={mealIndex} className="shadow-soft">
               <CardHeader className="pb-3">
@@ -138,9 +144,9 @@ export default function PlanDisplay({ plan }: PlanDisplayProps) {
                     </Badge>
                   </div>
                 ))}
-                
+
                 <Separator />
-                
+
                 <div className="flex justify-between items-center font-medium">
                   <span>Total da refeição:</span>
                   <span className="text-primary">

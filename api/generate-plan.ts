@@ -49,45 +49,86 @@ export default async function handler(req: Request) {
     ];
 
     const prompt = `
-      Você é um nutricionista especialista em cultura alimentar brasileira. Crie um plano alimentar para o paciente "${patientName}".
+    Você é um nutricionista especialista em cultura alimentar brasileira. Crie um plano alimentar para o paciente "${patientName}".
 
-      **Restrições e Preferências:**
-      - Calorias Máximas: ${maxCalories}
-      - Tipo de Refeição: ${mealType}
-      - Prioridade de Macronutriente: ${macroPriority}
-      - Alimentos Disponíveis: ${selectedFoods.join(", ")}
-      - Observações Adicionais: ${observations}
+    **OBJETIVO PRINCIPAL:**
+    Criar um plano alimentar que OBRIGATORIAMENTE atinja entre 85% e 100% do valor calórico máximo permitido (${maxCalories} calorias).
 
-      **Formato da Resposta (JSON):**
-      Responda estritamente com um objeto JSON com a seguinte estrutura:
-      {
-        "meals": [
-          {
-            "type": "breakfast" | "lunch" | "dinner" | "snack",
-            "foods": [
-              {
-                "name": "Nome do Alimento",
-                "quantity": "Quantidade (ex: 100g ou 1 unidade)",
-                "calories": numero_de_calorias
+    **Restrições e Preferências:**
+    - **META CALÓRICA:** ${maxCalories} calorias (IMPORTANTE: O plano deve somar NO MÍNIMO ${Math.floor(maxCalories * 0.85)} calorias e NO MÁXIMO ${maxCalories} calorias)
+    - Tipo de Refeição: ${mealType}
+    - Prioridade de Macronutriente: ${macroPriority}
+    - Alimentos Disponíveis: ${selectedFoods.join(", ")}
+    - Observações Adicionais: ${observations}
+
+    **REGRAS OBRIGATÓRIAS:**
+
+    1. **CALORIAS:** 
+      - O total de calorias DEVE estar entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories}
+      - Se o primeiro cálculo ficar abaixo de 85%, AJUSTE as quantidades para cima
+      - Priorize atingir o valor máximo sem ultrapassar
+
+    2. **DISTRIBUIÇÃO CALÓRICA (quando tipo "all"):**
+      - Café da manhã: 20-25% das calorias totais
+      - Almoço: 30-35% das calorias totais  
+      - Lanche: 10-15% das calorias totais
+      - Jantar: 25-30% das calorias totais
+
+    3. **COMPOSIÇÃO DAS REFEIÇÕES:**
+      - Utilize APENAS os alimentos listados em "Alimentos Disponíveis"
+      - Cada refeição principal deve conter:
+        * 1 fonte de carboidrato (arroz, pão, batata, mandioca, fruta)
+        * 1 fonte de proteína (frango, ovo, feijão, laticínios)
+        * 1 acompanhamento (salada, legumes, café)
+      - Especifique sempre o método de preparo (cozido, assado, grelhado)
+
+    4. **AJUSTE DE QUANTIDADES:**
+      - Se necessário aumentar calorias, ajuste proporcionalmente:
+        * Carboidratos: aumente em 25-50g
+        * Proteínas: aumente em 20-30g
+        * Gorduras saudáveis: adicione 1-2 colheres de azeite
+      - Use porções realistas e culturalmente apropriadas
+
+    **Formato da Resposta (JSON):**
+    {
+      "total_calories": número_total_de_calorias_do_plano,
+      "calories_percentage": percentual_em_relação_ao_máximo,
+      "meals": [
+        {
+          "type": "breakfast" | "lunch" | "dinner" | "snack",
+          "subtotal_calories": total_de_calorias_desta_refeição,
+          "foods": [
+            {
+              "name": "Nome do Alimento",
+              "preparation": "Forma de preparo",
+              "quantity": "Quantidade (ex: 150g, 2 unidades médias)",
+              "calories": numero_de_calorias,
+              "macros": {
+                "protein": gramas_de_proteína,
+                "carbs": gramas_de_carboidrato,
+                "fat": gramas_de_gordura
               }
-            ]
-          }
-        ]
+            }
+          ]
+        }
+      ],
+      "validation": {
+        "meets_minimum": boolean (true se >= 85% do máximo),
+        "within_limit": boolean (true se <= máximo),
+        "balanced": boolean (true se tem todos grupos alimentares)
       }
+    }
 
-      **Instruções Adicionais:**
-      - O total de calorias do plano não deve exceder ${maxCalories}, porém deve ser o mais próximo possível disso.
-      - Utilize **apenas** os alimentos fornecidos em "Alimentos Disponíveis".
-      - Sempre que possível, monte a refeição de forma **equilibrada** com pelo menos:
-        - 1 fonte de carboidrato (ex: arroz, pão, batata, mandioca, fruta);
-        - 1 fonte de proteína (ex: frango, ovo, feijão, laticínios);
-        - 1 acompanhamento típico brasileiro (ex: salada, legumes, café no café da manhã).
-      - Especifique a forma de preparo (ex: cozido, assado, grelhado).
-      - Leve em consideração a cultura alimentar brasileira (ex.: arroz + feijão + proteína no almoço/jantar; pão/ovos/fruta/café da manhã).
-      - Se o tipo de refeição for "all", crie um plano para o dia todo (café da manhã, almoço, lanche e jantar).
-      - Se for um tipo de refeição específico, crie apenas para essa refeição.
-      - Evite montar refeições compostas apenas por proteína e leguminosas sem carboidratos, a não ser que seja estritamente necessário pelas restrições de alimentos.
-      - Leve em consideração as seguintes observações: ${observations}.
+    **VALIDAÇÃO FINAL:**
+    Antes de retornar o JSON, verifique:
+    1. ✓ Total de calorias está entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories}?
+    2. ✓ Todas as refeições estão balanceadas?
+    3. ✓ As quantidades são realistas para consumo?
+    4. ✓ Respeitou a cultura alimentar brasileira?
+
+    Se o total estiver abaixo do mínimo, RECALCULE aumentando as porções proporcionalmente.
+
+    **Observações do Paciente:** ${observations}
     `;
 
     const result = await model.generateContent(prompt);

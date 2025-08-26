@@ -48,44 +48,44 @@ export default async function handler(req: Request) {
     ];
 
     const prompt = `
-Crie um plano alimentar brasileiro para "${patientName}".
-
-**META:** ${maxCalories} calorias (OBRIGATÓRIO: 85-100% = ${Math.floor(maxCalories * 0.85)}-${maxCalories} cal)
-**DADOS:** ${mealType} | Foco: ${macroPriority} | Alimentos: ${selectedFoods.join(", ")}
-**OBS:** ${observations}
-
-**REGRAS:**
-1. **Calorias:** Ajuste porções para atingir 85-100% do limite
-2. **Cultura BR:** 
-   - Café: pão/tapioca + ovo/queijo/leite (NÃO arroz/feijão)
-   - Almoço/Jantar: arroz/macarrão + proteína + salada/legumes
-   - Lanche: fruta/iogurte/pão pequeno
-3. **Distribuição (se "all"):** Café 20-25%, Almoço 30-35%, Lanche 10-15%, Jantar 25-30%
-
-**IMPORTANTE:** Retorne APENAS o JSON válido, sem texto adicional.
-
-**JSON de resposta:**
-{
-  "total_calories": número,
-  "calories_percentage": percentual,
-  "meals": [{
-    "type": "breakfast|lunch|dinner|snack",
-    "subtotal_calories": número,
-    "foods": [{
-      "name": "Nome",
-      "preparation": "preparo",
-      "quantity": "150g ou 2 unidades",
-      "calories": número,
-      "macros": {"protein": 0, "carbs": 0, "fat": 0}
-    }]
-  }],
-  "validation": {
-    "meets_minimum": true,
-    "within_limit": true,
-    "balanced": true
-  }
-}
-`;
+    Crie um plano alimentar brasileiro para "${patientName}".
+    
+    **META:** ${maxCalories} calorias (OBRIGATÓRIO: 85-100% = ${Math.floor(maxCalories * 0.85)}-${maxCalories} cal)
+    **DADOS:** ${mealType} | Foco: ${macroPriority} | Alimentos: ${selectedFoods.join(", ")}
+    **OBS:** ${observations}
+    
+    **REGRAS:**
+    1. **Calorias:** Ajuste porções para atingir 85-100% do limite
+    2. **Cultura BR:** 
+       - Café: pão/tapioca + ovo/queijo/leite (NÃO arroz/feijão)
+       - Almoço/Jantar: arroz/macarrão + proteína + salada/legumes
+       - Lanche: fruta/iogurte/pão pequeno
+    3. **Distribuição (se "all"):** Café 20-25%, Almoço 30-35%, Lanche 10-15%, Jantar 25-30%
+    
+    **IMPORTANTE:** Retorne APENAS o JSON válido, sem texto adicional.
+    
+    **JSON de resposta:**
+    {
+      "total_calories": número,
+      "calories_percentage": percentual,
+      "meals": [{
+        "type": "breakfast|lunch|dinner|snack",
+        "subtotal_calories": número,
+        "foods": [{
+          "name": "Nome",
+          "preparation": "preparo",
+          "quantity": "150g ou 2 unidades",
+          "calories": número,
+          "macros": {"protein": 0, "carbs": 0, "fat": 0}
+        }]
+      }],
+      "validation": {
+        "meets_minimum": true,
+        "within_limit": true,
+        "balanced": true
+      }
+    }
+    `;
 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],

@@ -45,7 +45,6 @@ export default async function handler(req: Request) {
         category: HarmCategory.HARM_CATEGORY_HARASSMENT,
         threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
       },
-      // ... (adicione outras configurações de segurança conforme necessário)
     ];
 
     const prompt = `
@@ -76,18 +75,39 @@ export default async function handler(req: Request) {
 
     3. **COMPOSIÇÃO DAS REFEIÇÕES:**
       - Utilize APENAS os alimentos listados em "Alimentos Disponíveis"
-      - Cada refeição principal deve conter:
-        * 1 fonte de carboidrato (arroz, pão, batata, mandioca, fruta)
-        * 1 fonte de proteína (frango, ovo, feijão, laticínios)
-        * 1 acompanhamento (salada, legumes, café)
       - Especifique sempre o método de preparo (cozido, assado, grelhado)
+      - Cada refeição principal deve conter fontes de carboidrato, proteína e acompanhamento.
+      - Use porções realistas e culturalmente apropriadas.
+
+      **Regras culturais específicas:**
+      - **Café da manhã (breakfast):**
+        * Carboidratos típicos: pão, tapioca, bolo simples, frutas
+        * Proteínas típicas: ovo, leite, queijo, iogurte
+        * Acompanhamentos: café, leite, suco natural, pequena porção de fruta
+        * **NÃO incluir** alimentos incomuns no café da manhã brasileiro (como arroz, feijão, aipo, legumes cozidos ou saladas)
+
+      - **Almoço (lunch):**
+        * Carboidrato base: arroz, macarrão ou batata
+        * Proteína: frango, carne, peixe, ovo, feijão
+        * Acompanhamento: salada ou legumes
+        * Evite itens típicos do café da manhã (bolo, iogurte, tapioca, etc.)
+
+      - **Jantar (dinner):**
+        * Estrutura semelhante ao almoço (carboidrato + proteína + legumes/salada)
+        * Pode ser mais leve (ex.: menor quantidade de carboidrato ou uso de sopas)
+        * Evite alimentos de café da manhã
+
+      - **Lanche (snack):**
+        * Deve ser leve e prático
+        * Exemplos: fruta, iogurte, pão pequeno, tapioca, castanhas
+        * Evite pratos completos (ex.: arroz, feijão, salada, carne)
 
     4. **AJUSTE DE QUANTIDADES:**
       - Se necessário aumentar calorias, ajuste proporcionalmente:
         * Carboidratos: aumente em 25-50g
         * Proteínas: aumente em 20-30g
         * Gorduras saudáveis: adicione 1-2 colheres de azeite
-      - Use porções realistas e culturalmente apropriadas
+      - Nunca use quantidades irreais (ex.: 500g de arroz em uma refeição)
 
     **Formato da Resposta (JSON):**
     {
@@ -122,7 +142,7 @@ export default async function handler(req: Request) {
     **VALIDAÇÃO FINAL:**
     Antes de retornar o JSON, verifique:
     1. ✓ Total de calorias está entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories}?
-    2. ✓ Todas as refeições estão balanceadas?
+    2. ✓ Todas as refeições estão balanceadas e culturalmente adequadas?
     3. ✓ As quantidades são realistas para consumo?
     4. ✓ Respeitou a cultura alimentar brasileira?
 

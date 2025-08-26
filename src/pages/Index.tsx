@@ -255,7 +255,10 @@ const Index = () => {
 
           <TabsContent value="create-plan">
              {selectedPatient ? (
-              <NutritionPlanForm onPlanGenerated={handlePlanGenerated} />
+              <NutritionPlanForm 
+                  patientName={selectedPatient.name}
+                  onPlanGenerated={handlePlanGenerated} 
+               />
             ) : (
                 <Card className="w-full max-w-4xl mx-auto shadow-medium">
                     <CardContent className="p-12 text-center">

@@ -1,3 +1,4 @@
+// src/components/NutritionPlanForm.tsx
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Utensils, Target, Zap, Plus, X } from "lucide-react";
+import { Utensils, Target, Zap, Plus, X, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const COMMON_FOODS = [
-  "Arroz", "Feijão", "Frango", "Ovos", "Leite", "Banana", "Maçã", "Brócolis", 
+  "Arroz", "Feijão", "Frango", "Ovos", "Leite", "Banana", "Maçã", "Brócolis",
   "Batata", "Pão integral", "Aveia", "Salmão", "Tomate", "Alface", "Cenoura"
 ];
 
@@ -31,13 +32,13 @@ const MACRO_PRIORITIES = [
 ];
 
 interface NutritionPlanFormProps {
+  patientName: string; // Receber o nome do paciente como propriedade
   onPlanGenerated: (plan: any) => void;
 }
 
-export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanFormProps) {
+export default function NutritionPlanForm({ patientName, onPlanGenerated }: NutritionPlanFormProps) {
   const [selectedFoods, setSelectedFoods] = useState<string[]>([]);
   const [customFood, setCustomFood] = useState("");
-  const [patientName, setPatientName] = useState("");
   const [maxCalories, setMaxCalories] = useState("");
   const [mealType, setMealType] = useState("");
   const [macroPriority, setMacroPriority] = useState("");
@@ -45,8 +46,8 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
   const { toast } = useToast();
 
   const handleFoodToggle = (food: string) => {
-    setSelectedFoods(prev => 
-      prev.includes(food) 
+    setSelectedFoods(prev =>
+      prev.includes(food)
         ? prev.filter(f => f !== food)
         : [...prev, food]
     );
@@ -64,7 +65,7 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
   };
 
   const generatePlan = async () => {
-    if (!patientName || !maxCalories || !mealType || !macroPriority || selectedFoods.length === 0) {
+    if (!maxCalories || !mealType || !macroPriority || selectedFoods.length === 0) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos para gerar o plano alimentar.",
@@ -97,7 +98,7 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
       const planData = await response.json();
 
       const newPlan = {
-        id: Date.now(),
+        // As informações do paciente já estão no componente pai (Index.tsx)
         patientName,
         maxCalories: parseInt(maxCalories),
         mealType,
@@ -107,11 +108,8 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
         meals: planData.meals
       };
 
-      onPlanGenerated(newPlan);
-      toast({
-        title: "Plano gerado com sucesso!",
-        description: `Plano alimentar criado para ${patientName}`,
-      });
+      onPlanGenerated(newPlan); // Envia os detalhes do plano para serem salvos
+
     } catch (error) {
       console.error(error);
       toast({
@@ -134,25 +132,23 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
       </CardHeader>
       <CardContent className="p-6 space-y-6">
         {/* Patient Info */}
-        <div className="space-y-2">
-          <Label htmlFor="patient-name" className="text-base font-medium">
-            Nome do Paciente *
+        <div className="p-4 border rounded-lg bg-muted/50">
+          <Label className="text-sm font-medium text-muted-foreground">
+            Paciente
           </Label>
-          <Input
-            id="patient-name"
-            placeholder="Digite o nome do paciente"
-            value={patientName}
-            onChange={(e) => setPatientName(e.target.value)}
-            className="text-base"
-          />
+          <div className="flex items-center gap-2 mt-1">
+             <User className="h-5 w-5 text-primary" />
+             <p className="text-lg font-semibold">{patientName}</p>
+          </div>
         </div>
+
 
         <Separator />
 
         {/* Available Foods */}
         <div className="space-y-4">
           <Label className="text-base font-medium">Alimentos Disponíveis *</Label>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {COMMON_FOODS.map(food => (
               <div key={food} className="flex items-center space-x-2">
@@ -161,8 +157,8 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
                   checked={selectedFoods.includes(food)}
                   onCheckedChange={() => handleFoodToggle(food)}
                 />
-                <Label 
-                  htmlFor={food} 
+                <Label
+                  htmlFor={food}
                   className="text-sm cursor-pointer flex-1"
                 >
                   {food}
@@ -189,8 +185,8 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
               {selectedFoods.map(food => (
                 <Badge key={food} variant="secondary" className="flex items-center gap-1">
                   {food}
-                  <X 
-                    className="h-3 w-3 cursor-pointer" 
+                  <X
+                    className="h-3 w-3 cursor-pointer"
                     onClick={() => removeFood(food)}
                   />
                 </Badge>
@@ -258,8 +254,8 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
         <Separator />
 
         {/* Generate Button */}
-        <Button 
-          onClick={generatePlan} 
+        <Button
+          onClick={generatePlan}
           disabled={isGenerating}
           className="w-full text-lg py-6"
           size="lg"

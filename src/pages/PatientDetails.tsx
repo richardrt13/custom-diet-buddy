@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, TrendingUp, Weight, Ruler, Percent } from "lucide-react";
+import { ArrowLeft, Plus, TrendingUp, Weight, Ruler, Percent, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
 import {
@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-
+import PlanDisplay from "@/components/PlanDisplay"; // Importe o componente de exibição
 
 interface Patient {
   id: string;
@@ -37,16 +37,25 @@ interface Metric {
   notes: string | null;
 }
 
+// Interface para o plano salvo
+interface SavedPlan {
+    id: string;
+    created_at: string;
+    plan_details: any; // O JSONB será deserializado aqui
+}
+
 export default function PatientDetails() {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [plans, setPlans] = useState<SavedPlan[]>([]); // Estado para os planos
+  const [selectedPlan, setSelectedPlan] = useState<any>(null); // Estado para o plano a ser exibido no modal
+  const [isPlanModalOpen, setPlanModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isMetricDialogOpen, setMetricDialogOpen] = useState(false);
 
-  // Estados para o novo formulário de métrica
   const [newWeight, setNewWeight] = useState("");
   const [newHeight, setNewHeight] = useState("");
   const [newBodyFat, setNewBodyFat] = useState("");
@@ -74,6 +83,7 @@ export default function PatientDetails() {
     }
     setPatient(patientData);
 
+    // Buscar Métricas
     const { data: metricsData, error: metricsError } = await supabase
       .from('patient_metrics')
       .select('*')
@@ -90,10 +100,32 @@ export default function PatientDetails() {
             setNewHeight(latestMetric.height?.toString() || "");
         }
     }
+
+    // Buscar Planos
+    const { data: plansData, error: plansError } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+
+    if(plansError) {
+        toast({ title: "Erro ao buscar planos", description: plansError.message, variant: "destructive" });
+    } else {
+        setPlans(plansData as SavedPlan[]);
+    }
+
+
     setLoading(false);
   };
+  
+  const handleViewPlan = (planDetails: any) => {
+    setSelectedPlan(planDetails);
+    setPlanModalOpen(true);
+  };
+
 
   const handleSaveMetric = async () => {
+    // ... (função sem alteração)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !patientId) return;
 
@@ -231,8 +263,51 @@ export default function PatientDetails() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Nova Seção de Planos Alimentares */}
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileText /> Planos Alimentares Salvos</CardTitle>
+                </CardHeader>
+                 <CardContent>
+                    {plans.length > 0 ? (
+                        <div className="space-y-2">
+                           {plans.map(plan => (
+                               <div key={plan.id} className="flex justify-between items-center p-3 border rounded-md">
+                                   <div>
+                                       <p className="font-medium">Plano de {new Date(plan.created_at).toLocaleDateString('pt-BR')}</p>
+                                       <p className="text-sm text-muted-foreground">{plan.plan_details.maxCalories} kcal - Foco: {plan.plan_details.macroPriority}</p>
+                                   </div>
+                                   <Button variant="secondary" size="sm" onClick={() => handleViewPlan(plan.plan_details)}>
+                                        Visualizar
+                                   </Button>
+                               </div>
+                           ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground">Nenhum plano alimentar foi criado para este paciente.</p>
+                    )}
+                </CardContent>
+            </Card>
+
         </div>
       )}
+
+       {/* Modal para Visualizar Plano */}
+        <Dialog open={isPlanModalOpen} onOpenChange={setPlanModalOpen}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>Detalhes do Plano Alimentar</DialogTitle>
+                </DialogHeader>
+                {selectedPlan && <PlanDisplay plan={selectedPlan} />}
+                 <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Fechar</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
     </div>
   );
 }

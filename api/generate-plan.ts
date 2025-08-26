@@ -62,6 +62,8 @@ export default async function handler(req: Request) {
       **Instruções Adicionais:**
       - O total de calorias do plano não deve exceder ${maxCalories}.
       - Utilize apenas os alimentos fornecidos na lista de "Alimentos Disponíveis".
+      - Especifique a forma de cozinhar os alimentos, se aplicável.
+      - Leve em consideração a cultura alimentar brasileira e pense em refeições ricas em nutrientes.
       - Se o tipo de refeição for "all", crie um plano para o dia todo (café da manhã, almoço, lanche, jantar).
       - Se for um tipo de refeição específico, crie apenas para essa refeição.
     `;

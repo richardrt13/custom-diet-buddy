@@ -2,9 +2,10 @@ import {
   GoogleGenerativeAI,
   HarmCategory,
   HarmBlockThreshold,
+  InlineDataPart,
 } from "@google/generative-ai";
 
-const MODEL_NAME = "gemini-2.5-pro"; // ou "gemini-2.0-flash"
+const MODEL_NAME = "gemini-2.5-flash";
 const API_KEY = process.env.GEMINI_API_KEY as string;
 
 export const config = {
@@ -32,12 +33,11 @@ export default async function handler(req: Request) {
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    // Configuração otimizada para Gemini 2.5 Pro
     const generationConfig = {
-      temperature: 0.7, // Reduzido para mais consistência
-      topK: 40,
-      topP: 0.95,
-      maxOutputTokens: 4096, // Aumentado para evitar truncamento
+      temperature: 0.9,
+      topK: 1,
+      topP: 1,
+      maxOutputTokens: 2048,
     };
 
     const safetySettings = [
@@ -48,119 +48,130 @@ export default async function handler(req: Request) {
     ];
 
     const prompt = `
-    Crie um plano alimentar brasileiro para "${patientName}".
-    
-    **META:** ${maxCalories} calorias (OBRIGATÓRIO: 85-100% = ${Math.floor(maxCalories * 0.85)}-${maxCalories} cal)
-    **DADOS:** ${mealType} | Foco: ${macroPriority} | Alimentos: ${selectedFoods.join(", ")}
-    **OBS:** ${observations}
-    
-    **REGRAS:**
-    1. **Calorias:** Ajuste porções para atingir 85-100% do limite
-    2. **Cultura BR:** 
-       - Café: pão/tapioca + ovo/queijo/leite (NÃO arroz/feijão)
-       - Almoço/Jantar: arroz/macarrão + proteína + salada/legumes
-       - Lanche: fruta/iogurte/pão pequeno
-    3. **Distribuição (se "all"):** Café 20-25%, Almoço 30-35%, Lanche 10-15%, Jantar 25-30%
-    
-    **IMPORTANTE:** Retorne APENAS o JSON válido, sem texto adicional.
-    
-    **JSON de resposta:**
+    Você é um nutricionista especialista em cultura alimentar brasileira. Crie um plano alimentar para o paciente "${patientName}".
+
+    **OBJETIVO PRINCIPAL:**
+    Criar um plano alimentar que OBRIGATORIAMENTE atinja entre 85% e 100% do valor calórico máximo permitido (${maxCalories} calorias).
+
+    **Restrições e Preferências:**
+    - **META CALÓRICA:** ${maxCalories} calorias (IMPORTANTE: O plano deve somar NO MÍNIMO ${Math.floor(maxCalories * 0.85)} calorias e NO MÁXIMO ${maxCalories} calorias)
+    - Tipo de Refeição: ${mealType}
+    - Prioridade de Macronutriente: ${macroPriority}
+    - Alimentos Disponíveis: ${selectedFoods.join(", ")}
+    - Observações Adicionais: ${observations}
+
+    **REGRAS OBRIGATÓRIAS:**
+
+    1. **CALORIAS:** 
+      - O total de calorias DEVE estar entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories}
+      - Se o primeiro cálculo ficar abaixo de 85%, AJUSTE as quantidades para cima
+      - Priorize atingir o valor máximo sem ultrapassar
+
+    2. **DISTRIBUIÇÃO CALÓRICA (quando tipo "all"):**
+      - Café da manhã: 20-25% das calorias totais
+      - Almoço: 30-35% das calorias totais  
+      - Lanche: 10-15% das calorias totais
+      - Jantar: 25-30% das calorias totais
+
+    3. **COMPOSIÇÃO DAS REFEIÇÕES:**
+      - Utilize APENAS os alimentos listados em "Alimentos Disponíveis"
+      - Especifique sempre o método de preparo (cozido, assado, grelhado)
+      - Cada refeição principal deve conter fontes de carboidrato, proteína e acompanhamento.
+      - Use porções realistas e culturalmente apropriadas.
+
+      **Regras culturais específicas:**
+      - **Café da manhã (breakfast):**
+        * Carboidratos típicos: pão, tapioca, bolo simples, frutas
+        * Proteínas típicas: ovo, leite, queijo, iogurte
+        * Acompanhamentos: café, leite, suco natural, pequena porção de fruta
+        * **NÃO incluir** alimentos incomuns no café da manhã brasileiro (como arroz, feijão, aipo, legumes cozidos ou saladas)
+
+      - **Almoço (lunch):**
+        * Carboidrato base: arroz, macarrão ou batata
+        * Proteína: frango, carne, peixe, ovo, feijão
+        * Acompanhamento: salada ou legumes
+        * Evite itens típicos do café da manhã (bolo, iogurte, tapioca, etc.)
+
+      - **Jantar (dinner):**
+        * Estrutura semelhante ao almoço (carboidrato + proteína + legumes/salada)
+        * Pode ser mais leve (ex.: menor quantidade de carboidrato ou uso de sopas)
+        * Evite alimentos de café da manhã
+
+      - **Lanche (snack):**
+        * Deve ser leve e prático
+        * Exemplos: fruta, iogurte, pão pequeno, tapioca, castanhas
+        * Evite pratos completos (ex.: arroz, feijão, salada, carne)
+
+    4. **AJUSTE DE QUANTIDADES:**
+      - Se necessário aumentar calorias, ajuste proporcionalmente:
+        * Carboidratos: aumente em 25-50g
+        * Proteínas: aumente em 20-30g
+        * Gorduras saudáveis: adicione 1-2 colheres de azeite
+      - Nunca use quantidades irreais (ex.: 500g de arroz em uma refeição)
+
+    **Formato da Resposta (JSON):**
     {
-      "total_calories": número,
-      "calories_percentage": percentual,
-      "meals": [{
-        "type": "breakfast|lunch|dinner|snack",
-        "subtotal_calories": número,
-        "foods": [{
-          "name": "Nome",
-          "preparation": "preparo",
-          "quantity": "150g ou 2 unidades",
-          "calories": número,
-          "macros": {"protein": 0, "carbs": 0, "fat": 0}
-        }]
-      }],
+      "total_calories": número_total_de_calorias_do_plano,
+      "calories_percentage": percentual_em_relação_ao_máximo,
+      "meals": [
+        {
+          "type": "breakfast" | "lunch" | "dinner" | "snack",
+          "subtotal_calories": total_de_calorias_desta_refeição,
+          "foods": [
+            {
+              "name": "Nome do Alimento",
+              "preparation": "Forma de preparo",
+              "quantity": "Quantidade (ex: 150g, 2 unidades médias)",
+              "calories": numero_de_calorias,
+              "macros": {
+                "protein": gramas_de_proteína,
+                "carbs": gramas_de_carboidrato,
+                "fat": gramas_de_gordura
+              }
+            }
+          ]
+        }
+      ],
       "validation": {
-        "meets_minimum": true,
-        "within_limit": true,
-        "balanced": true
+        "meets_minimum": boolean (true se >= 85% do máximo),
+        "within_limit": boolean (true se <= máximo),
+        "balanced": boolean (true se tem todos grupos alimentares)
       }
     }
+
+    **VALIDAÇÃO FINAL:**
+    Antes de retornar o JSON, verifique:
+    1. ✓ Total de calorias está entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories}?
+    2. ✓ Todas as refeições estão balanceadas e culturalmente adequadas?
+    3. ✓ As quantidades são realistas para consumo?
+    4. ✓ Respeitou a cultura alimentar brasileira?
+
+    Se o total estiver abaixo do mínimo, RECALCULE aumentando as porções proporcionalmente.
+
+    **Observações do Paciente:** ${observations}
     `;
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig,
-      safetySettings,
-    });
-
+    const result = await model.generateContent(prompt);
     const response = result.response;
-    
-    // Verificação melhorada da resposta
-    if (!response || !response.text) {
-      throw new Error("Empty response from Gemini API");
-    }
+    const text = response.text();
 
-    let text = response.text().trim();
-    
-    // Limpeza mais robusta
-    text = text
-      .replace(/```json/gi, "")
+    // Limpa a resposta para garantir que seja um JSON válido
+    const cleanedText = text
+      .replace(/```json/g, "")
       .replace(/```/g, "")
-      .replace(/^[^{]*/, "") // Remove qualquer texto antes do primeiro {
-      .replace(/[^}]*$/, "") // Remove qualquer texto após o último }
       .trim();
 
-    // Validação se é JSON válido
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(text);
-    } catch (parseError) {
-      console.error("JSON Parse Error:", parseError);
-      console.error("Raw text:", text);
-      
-      // Fallback: tenta extrair JSON válido
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          parsedResponse = JSON.parse(jsonMatch[0]);
-        } catch (fallbackError) {
-          throw new Error("Invalid JSON response from Gemini API");
-        }
-      } else {
-        throw new Error("No valid JSON found in response");
-      }
-    }
-
-    // Validação estrutural do JSON
-    if (!parsedResponse.total_calories || !parsedResponse.meals) {
-      throw new Error("Invalid response structure");
-    }
-
-    return new Response(JSON.stringify(parsedResponse), {
+    return new Response(cleanedText, {
       status: 200,
       headers: {
         "Content-Type": "application/json",
       },
     });
-
   } catch (error) {
     console.error("Error generating nutrition plan:", error);
-    
-    // Log detalhado para debug
-    if (error.message?.includes("JSON")) {
-      console.error("This appears to be a JSON parsing issue with Gemini 2.5 Pro");
-    }
-    
     return new Response(
-      JSON.stringify({ 
-        error: "Failed to generate nutrition plan",
-        details: error.message,
-        suggestion: "Try switching to gemini-2.0-flash if the issue persists"
-      }),
-      { 
-        status: 500, 
-        headers: { "Content-Type": "application/json" } 
-      }
+      JSON.stringify({ error: "Failed to generate nutrition plan" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

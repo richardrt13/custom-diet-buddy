@@ -74,10 +74,29 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
     }
 
     setIsGenerating(true);
-    
-    // Simulating AI generation
-    setTimeout(() => {
-      const mockPlan = {
+
+    try {
+      const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientName,
+          maxCalories,
+          mealType,
+          macroPriority,
+          selectedFoods,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate nutrition plan');
+      }
+
+      const planData = await response.json();
+
+      const newPlan = {
         id: Date.now(),
         patientName,
         maxCalories: parseInt(maxCalories),
@@ -85,38 +104,24 @@ export default function NutritionPlanForm({ onPlanGenerated }: NutritionPlanForm
         macroPriority,
         foods: selectedFoods,
         generatedAt: new Date(),
-        meals: generateMockMeals()
+        meals: planData.meals
       };
-      
-      onPlanGenerated(mockPlan);
-      setIsGenerating(false);
-      
+
+      onPlanGenerated(newPlan);
       toast({
         title: "Plano gerado com sucesso!",
         description: `Plano alimentar criado para ${patientName}`,
       });
-    }, 2000);
-  };
-
-  const generateMockMeals = () => {
-    const meals = [];
-    const selectedMealTypes = mealType === "all" 
-      ? ["breakfast", "lunch", "dinner", "snack"]
-      : [mealType];
-
-    selectedMealTypes.forEach(type => {
-      const mealFoods = selectedFoods.slice(0, Math.min(3, selectedFoods.length));
-      meals.push({
-        type,
-        foods: mealFoods.map(food => ({
-          name: food,
-          quantity: `${Math.floor(Math.random() * 150) + 50}g`,
-          calories: Math.floor(Math.random() * 200) + 100
-        }))
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao gerar plano",
+        description: "Ocorreu um erro ao se comunicar com a IA. Tente novamente.",
+        variant: "destructive"
       });
-    });
-
-    return meals;
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (

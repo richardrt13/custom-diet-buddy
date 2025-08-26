@@ -117,7 +117,9 @@ export default async function handler(req: Request) {
 
     const result = await model.generateContent(prompt);
     const response = result.response;
-    const text = response.text();
+    let text = response.text();
+
+    text = text.replace(/```json/g, "").replace(/```/g, "");
 
     return new Response(text, {
       status: 200,

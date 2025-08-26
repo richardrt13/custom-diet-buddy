@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import PatientDetails from "./pages/PatientDetails"; // Importe a nova página
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -18,6 +20,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // ... (o resto do useEffect permanece igual)
     const getSession = async () => {
       const {
         data: { session },
@@ -52,9 +55,13 @@ const App = () => {
               path="/"
               element={session ? <Index /> : <Navigate to="/login" />}
             />
+            {/* Adicione a nova rota protegida abaixo */}
+            <Route
+              path="/patient/:patientId"
+              element={session ? <PatientDetails /> : <Navigate to="/login" />}
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

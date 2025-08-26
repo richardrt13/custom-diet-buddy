@@ -1,32 +1,143 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Users, Brain, TrendingUp, FileText, CalendarDays, LogOut } from "lucide-react";
+import { Heart, Users, FileText, CalendarDays, LogOut, TrendingUp } from "lucide-react";
 import NutritionPlanForm from "@/components/NutritionPlanForm";
 import PlanDisplay from "@/components/PlanDisplay";
 import PatientList from "@/components/PatientList";
 import heroImage from "@/assets/nutrition-hero.jpg";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+// Interfaces para os dados
+interface Patient {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  created_at: Date;
+  status: 'active' | 'inactive';
+}
+
+interface Plan {
+    id: string;
+    patient_id: string;
+    plan_details: any;
+    created_at: Date;
+}
+
 
 const Index = () => {
-  const [generatedPlan, setGeneratedPlan] = useState(null);
+  const [generatedPlan, setGeneratedPlan] = useState<Plan | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [isAddPatientOpen, setAddPatientOpen] = useState(false);
+  const [newPatientName, setNewPatientName] = useState("");
+  const { toast } = useToast();
+  const [stats, setStats] = useState({ activePatients: 0, plansCreated: 0 });
 
-  const handlePlanGenerated = (plan: any) => {
-    setGeneratedPlan(plan);
-    setActiveTab("plan");
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { count: patientsCount, error: patientsError } = await supabase
+      .from('patients')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'active');
+
+    const { count: plansCount, error: plansError } = await supabase
+      .from('plans')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    if (patientsError || plansError) {
+      console.error("Erro ao buscar estatísticas:", patientsError || plansError);
+    } else {
+      setStats({
+        activePatients: patientsCount || 0,
+        plansCreated: plansCount || 0
+      });
+    }
   };
 
-  const handleSelectPatient = (patient: any) => {
-    console.log("Selected patient:", patient);
+  const handlePlanGenerated = async (planData: any) => {
+      if (!selectedPatient) {
+          toast({ title: "Nenhum paciente selecionado", description: "Selecione um paciente antes de gerar um plano.", variant: "destructive" });
+          return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+          .from('plans')
+          .insert([{
+              user_id: user.id,
+              patient_id: selectedPatient.id,
+              plan_details: planData
+          }])
+          .select()
+          .single();
+
+      if (error) {
+          toast({ title: "Erro ao salvar o plano", description: error.message, variant: "destructive" });
+      } else {
+          setGeneratedPlan(data as Plan);
+          setActiveTab("plan");
+          fetchStats(); // Atualiza as estatísticas
+          toast({ title: "Plano salvo com sucesso!", description: `Plano alimentar criado para ${selectedPatient.name}` });
+      }
+  };
+
+
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
     setActiveTab("create-plan");
   };
 
-  const handleAddPatient = () => {
-    console.log("Add new patient");
+  const handleAddPatientClick = () => {
+    setNewPatientName("");
+    setAddPatientOpen(true);
   };
+
+  const handleCreatePatient = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !newPatientName.trim()) {
+        toast({ title: "Nome do paciente é obrigatório.", variant: "destructive" });
+        return;
+    };
+
+    const { error } = await supabase.from('patients').insert([{ name: newPatientName.trim(), user_id: user.id }]);
+
+    if (error) {
+        toast({ title: "Erro ao criar paciente", description: error.message, variant: "destructive" });
+    } else {
+        toast({ title: "Paciente adicionado com sucesso!" });
+        setAddPatientOpen(false);
+        fetchStats();
+        // Recarregar a lista de pacientes (idealmente, o componente PatientList faria isso sozinho)
+        setActiveTab("patients"); // Mudar de aba para forçar a recarga
+        setActiveTab("dashboard");
+    }
+  };
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -34,7 +145,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-primary/5">
-      {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -56,7 +166,6 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-4">
@@ -79,11 +188,10 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-8">
-            {/* Hero Section */}
             <div className="relative overflow-hidden rounded-2xl shadow-strong">
-              <img 
-                src={heroImage} 
-                alt="Nutrition planning interface" 
+              <img
+                src={heroImage}
+                alt="Nutrition planning interface"
                 className="w-full h-64 object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-success/60" />
@@ -95,8 +203,8 @@ const Index = () => {
                   <p className="text-xl mb-6 max-w-2xl">
                     Crie planos nutricionais personalizados com IA para seus pacientes
                   </p>
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="bg-white text-primary hover:bg-white/90"
                     onClick={() => setActiveTab("create-plan")}
                   >
@@ -106,7 +214,6 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="shadow-soft">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -114,22 +221,18 @@ const Index = () => {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-primary">247</div>
-                  <p className="text-xs text-muted-foreground">+12% desde o mês passado</p>
+                  <div className="text-2xl font-bold text-primary">{stats.activePatients}</div>
                 </CardContent>
               </Card>
-
               <Card className="shadow-soft">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Planos Criados</CardTitle>
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-success">1.2k</div>
-                  <p className="text-xs text-muted-foreground">+8% desde o mês passado</p>
+                  <div className="text-2xl font-bold text-success">{stats.plansCreated}</div>
                 </CardContent>
               </Card>
-
               <Card className="shadow-soft">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
@@ -137,51 +240,41 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-info">94%</div>
-                  <p className="text-xs text-muted-foreground">+2% desde o mês passado</p>
+                  <p className="text-xs text-muted-foreground">Dados fictícios</p>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Quick Actions */}
-            <Card className="shadow-soft">
-              <CardHeader>
-                <CardTitle>Ações Rápidas</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex flex-col gap-2"
-                  onClick={() => setActiveTab("patients")}
-                >
-                  <Users className="h-6 w-6" />
-                  Gerenciar Pacientes
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex flex-col gap-2"
-                  onClick={() => setActiveTab("create-plan")}
-                >
-                  <FileText className="h-6 w-6" />
-                  Criar Novo Plano
-                </Button>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="patients">
-            <PatientList 
+            <PatientList
               onSelectPatient={handleSelectPatient}
-              onAddPatient={handleAddPatient}
+              onAddPatient={handleAddPatientClick}
             />
           </TabsContent>
 
           <TabsContent value="create-plan">
-            <NutritionPlanForm onPlanGenerated={handlePlanGenerated} />
+             {selectedPatient ? (
+              <NutritionPlanForm onPlanGenerated={handlePlanGenerated} />
+            ) : (
+                <Card className="w-full max-w-4xl mx-auto shadow-medium">
+                    <CardContent className="p-12 text-center">
+                        <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-xl font-semibold mb-2">Nenhum paciente selecionado</h3>
+                        <p className="text-muted-foreground mb-6">
+                            Vá para a aba "Pacientes" para selecionar um ou adicionar um novo.
+                        </p>
+                        <Button onClick={() => setActiveTab("patients")}>
+                            Ver Pacientes
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="plan">
             {generatedPlan ? (
-              <PlanDisplay plan={generatedPlan} />
+              <PlanDisplay plan={generatedPlan.plan_details} />
             ) : (
               <Card className="w-full max-w-4xl mx-auto shadow-medium">
                 <CardContent className="p-12 text-center">
@@ -199,6 +292,37 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+        <Dialog open={isAddPatientOpen} onOpenChange={setAddPatientOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Adicionar Novo Paciente</DialogTitle>
+                    <DialogDescription>
+                        Insira o nome do novo paciente para começar a criar planos alimentares.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="name" className="text-right">
+                            Nome
+                        </Label>
+                        <Input
+                            id="name"
+                            value={newPatientName}
+                            onChange={(e) => setNewPatientName(e.target.value)}
+                            className="col-span-3"
+                            placeholder="Nome completo do paciente"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancelar</Button>
+                    </DialogClose>
+                    <Button onClick={handleCreatePatient}>Salvar</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 };

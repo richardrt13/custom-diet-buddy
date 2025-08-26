@@ -1,17 +1,20 @@
-import { useState } from "react";
+// src/components/PatientList.tsx
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, Plus, Eye, Calendar } from "lucide-react";
+import { Users, Search, Plus, Eye, Calendar, FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Patient {
-  id: number;
+  id: string;
   name: string;
-  email: string;
-  phone: string;
-  lastPlan: Date | null;
-  totalPlans: number;
+  email: string | null;
+  phone: string | null;
+  created_at: Date;
   status: 'active' | 'inactive';
 }
 
@@ -22,50 +25,48 @@ interface PatientListProps {
 
 export default function PatientList({ onSelectPatient, onAddPatient }: PatientListProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // Mock data - in real app would come from backend
-  const [patients] = useState<Patient[]>([
-    {
-      id: 1,
-      name: "Maria Silva",
-      email: "maria@email.com",
-      phone: "(11) 99999-9999",
-      lastPlan: new Date(2024, 0, 15),
-      totalPlans: 3,
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: "João Santos",
-      email: "joao@email.com", 
-      phone: "(11) 88888-8888",
-      lastPlan: new Date(2024, 0, 10),
-      totalPlans: 5,
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: "Ana Costa",
-      email: "ana@email.com",
-      phone: "(11) 77777-7777",
-      lastPlan: null,
-      totalPlans: 0,
-      status: 'inactive'
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  const fetchPatients = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        toast({ title: "Erro ao buscar pacientes", description: error.message, variant: "destructive" });
+      } else {
+        setPatients(data as Patient[]);
+      }
     }
-  ]);
+    setLoading(false);
+  };
+
 
   const filteredPatients = patients.filter(patient =>
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (patient.email && patient.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const formatDate = (date: Date | null) => {
     if (!date) return "Nunca";
     return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
-      month: '2-digit', 
+      month: '2-digit',
       year: 'numeric'
-    }).format(date);
+    }).format(new Date(date));
   };
 
   return (
@@ -84,7 +85,6 @@ export default function PatientList({ onSelectPatient, onAddPatient }: PatientLi
       </CardHeader>
 
       <CardContent className="p-6 space-y-6">
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -95,60 +95,61 @@ export default function PatientList({ onSelectPatient, onAddPatient }: PatientLi
           />
         </div>
 
-        {/* Patient Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredPatients.map(patient => (
-            <Card key={patient.id} className="shadow-soft hover:shadow-medium transition-shadow cursor-pointer">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
+        {loading ? (
+           <p>Carregando pacientes...</p>
+        ) : filteredPatients.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredPatients.map(patient => (
+              <Card key={patient.id} className="shadow-soft hover:shadow-medium transition-shadow">
+                <CardContent className="p-4 flex flex-col justify-between h-full">
                   <div>
-                    <h3 className="font-semibold text-lg">{patient.name}</h3>
-                    <p className="text-sm text-muted-foreground">{patient.email}</p>
-                    <p className="text-sm text-muted-foreground">{patient.phone}</p>
-                  </div>
-                  <Badge 
-                    variant={patient.status === 'active' ? 'default' : 'secondary'}
-                    className="text-xs"
-                  >
-                    {patient.status === 'active' ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                  <div>
-                    <div className="font-medium text-primary">{patient.totalPlans}</div>
-                    <div className="text-muted-foreground">Planos criados</div>
-                  </div>
-                  <div>
-                    <div className="font-medium text-info flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(patient.lastPlan)}
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{patient.name}</h3>
+                        <p className="text-sm text-muted-foreground">{patient.email}</p>
+                      </div>
+                      <Badge
+                        variant={patient.status === 'active' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {patient.status === 'active' ? 'Ativo' : 'Inativo'}
+                      </Badge>
                     </div>
-                    <div className="text-muted-foreground">Último plano</div>
+                    <div className="text-sm mb-4">
+                      <div className="font-medium text-info flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                         Criado em: {formatDate(patient.created_at)}
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <Button 
-                  onClick={() => onSelectPatient(patient)}
-                  variant="outline" 
-                  className="w-full"
-                  size="sm"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Ver Detalhes
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredPatients.length === 0 && (
+                  <div className="flex flex-col sm:flex-row gap-2 mt-auto">
+                    <Button
+                      onClick={() => navigate(`/patient/${patient.id}`)}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Detalhes
+                    </Button>
+                     <Button
+                      onClick={() => onSelectPatient(patient)}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Criar Plano
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>Nenhum paciente encontrado</p>
-            {searchTerm && (
-              <p className="text-sm">Tente ajustar os termos de busca</p>
-            )}
           </div>
         )}
       </CardContent>

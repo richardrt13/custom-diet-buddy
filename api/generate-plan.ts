@@ -34,7 +34,7 @@ export default async function handler(req: Request) {
     ];
 
     const prompt = `
-      Você é um nutricionista especialista. Crie um plano alimentar para o paciente "${patientName}".
+      Você é um nutricionista especialista em cultura alimentar brasileira. Crie um plano alimentar para o paciente "${patientName}".
 
       **Restrições e Preferências:**
       - Calorias Máximas: ${maxCalories}
@@ -51,7 +51,7 @@ export default async function handler(req: Request) {
             "foods": [
               {
                 "name": "Nome do Alimento",
-                "quantity": "Quantidade (ex: 100g)",
+                "quantity": "Quantidade (ex: 100g ou 1 unidade)",
                 "calories": numero_de_calorias
               }
             ]
@@ -61,11 +61,16 @@ export default async function handler(req: Request) {
 
       **Instruções Adicionais:**
       - O total de calorias do plano não deve exceder ${maxCalories}.
-      - Utilize apenas os alimentos fornecidos na lista de "Alimentos Disponíveis".
-      - Especifique a forma de cozinhar os alimentos, se aplicável.
-      - Leve em consideração a cultura alimentar brasileira e pense em refeições ricas em nutrientes.
-      - Se o tipo de refeição for "all", crie um plano para o dia todo (café da manhã, almoço, lanche, jantar).
+      - Utilize **apenas** os alimentos fornecidos em "Alimentos Disponíveis".
+      - Sempre que possível, monte a refeição de forma **equilibrada** com pelo menos:
+        - 1 fonte de carboidrato (ex: arroz, pão, batata, mandioca, fruta);
+        - 1 fonte de proteína (ex: frango, ovo, feijão, laticínios);
+        - 1 acompanhamento típico brasileiro (ex: salada, legumes, café no café da manhã).
+      - Especifique a forma de preparo (ex: cozido, assado, grelhado).
+      - Leve em consideração a cultura alimentar brasileira (ex.: arroz + feijão + proteína no almoço/jantar; pão/ovos/fruta/café da manhã).
+      - Se o tipo de refeição for "all", crie um plano para o dia todo (café da manhã, almoço, lanche e jantar).
       - Se for um tipo de refeição específico, crie apenas para essa refeição.
+      - Evite montar refeições compostas apenas por proteína e leguminosas sem carboidratos, a não ser que seja estritamente necessário pelas restrições de alimentos.
     `;
 
     const result = await model.generateContent(prompt);

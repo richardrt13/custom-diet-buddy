@@ -56,6 +56,7 @@ const MEAL_TYPES = [
 ];
 
 const MACRO_PRIORITIES = [
+  { value: "balanced", label: "Equilibrado", icon: "⚖️" },
   { value: "carbs", label: "Carboidratos", icon: "🌾" },
   { value: "protein", label: "Proteínas", icon: "🥩" },
   { value: "fats", label: "Gorduras", icon: "🥑" },
@@ -123,7 +124,12 @@ export default function NutritionPlanForm({
       return;
     }
 
-    if (!maxCalories || !mealType || !macroPriority || selectedFoods.length === 0) {
+    if (
+      !maxCalories ||
+      !mealType ||
+      !macroPriority ||
+      selectedFoods.length === 0
+    ) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos para gerar o plano alimentar.",
@@ -204,7 +210,10 @@ export default function NutritionPlanForm({
             <Label className="text-base font-medium">
               Selecione o Paciente *
             </Label>
-            <Select onValueChange={setSelectedPatientId} value={selectedPatientId}>
+            <Select
+              onValueChange={setSelectedPatientId}
+              value={selectedPatientId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Escolha um paciente..." />
               </SelectTrigger>
@@ -222,7 +231,9 @@ export default function NutritionPlanForm({
         <Separator />
 
         <div className="space-y-4">
-          <Label className="text-base font-medium">Alimentos Disponíveis *</Label>
+          <Label className="text-base font-medium">
+            Alimentos Disponíveis *
+          </Label>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {COMMON_FOODS.map((food) => (
@@ -232,7 +243,10 @@ export default function NutritionPlanForm({
                   checked={selectedFoods.includes(food)}
                   onCheckedChange={() => handleFoodToggle(food)}
                 />
-                <Label htmlFor={food} className="text-sm cursor-pointer flex-1">
+                <Label
+                  htmlFor={food}
+                  className="text-sm cursor-pointer flex-1"
+                >
                   {food}
                 </Label>
               </div>

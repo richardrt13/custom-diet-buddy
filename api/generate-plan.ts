@@ -4,8 +4,7 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
-// 1. Modelo atualizado para o mais robusto disponível
-const MODEL_NAME = "gemini-2.5-pro";
+const MODEL_NAME = "gemini-2.0-flash";
 const API_KEY = process.env.GEMINI_API_KEY as string;
 
 export const config = {
@@ -33,7 +32,6 @@ export default async function handler(req: Request) {
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
-      // 2. Instrução de Sistema para guiar o "pensamento" do modelo
       systemInstruction: "Você é um nutricionista especialista em culinária brasileira e na criação de planos alimentares detalhados. Sua principal função é gerar um plano alimentar em formato JSON válido, seguindo estritamente as diretrizes e regras fornecidas no prompt do usuário. Não adicione nenhum texto ou formatação fora do JSON.",
     });
 
@@ -42,7 +40,6 @@ export default async function handler(req: Request) {
       topK: 1,
       topP: 1,
       maxOutputTokens: 4096,
-      // 3. Garantia de que a saída será sempre um JSON válido
       responseMimeType: "application/json",
     };
 
@@ -65,7 +62,6 @@ export default async function handler(req: Request) {
       },
     ];
 
-    // 4. Prompt revisado para máxima eficiência e clareza
     const prompt = `
     Crie um plano alimentar para "${patientName}".
 

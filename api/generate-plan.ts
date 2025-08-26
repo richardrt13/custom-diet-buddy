@@ -47,7 +47,6 @@ export default async function handler(req: Request) {
       },
     ];
 
-
     const prompt = `
     Você é um nutricionista especialista em culinária brasileira. Crie um plano alimentar para "${patientName}" que atinja OBRIGATORIAMENTE 85-100% de ${maxCalories} calorias (${Math.floor(maxCalories * 0.85)}-${maxCalories} cal).
     
@@ -70,27 +69,33 @@ export default async function handler(req: Request) {
     
     4. **AJUSTES:** Carboidrato +25-50g, Proteína +20-30g, Azeite +1-2 col. Quantidades realistas.
     
-    **FORMATO JSON:**
+    **FORMATO JSON (OBRIGATÓRIO - JSON VÁLIDO APENAS):**
     {
-      "total_calories": número,
-      "calories_percentage": percentual,
-      "meals": [{
-        "type": "breakfast|lunch|dinner|snack",
-        "subtotal_calories": número,
-        "foods": [{
-          "name": "nome",
-          "preparation": "preparo",
-          "quantity": "quantidade",
-          "calories": número,
-          "macros": {"protein": g, "carbs": g, "fat": g}
-        }]
-      }],
+      "total_calories": 1800,
+      "calories_percentage": 95.5,
+      "meals": [
+        {
+          "type": "breakfast",
+          "subtotal_calories": 400,
+          "foods": [
+            {
+              "name": "Pão integral",
+              "preparation": "torrado",
+              "quantity": "2 fatias",
+              "calories": 160,
+              "macros": {"protein": 6, "carbs": 30, "fat": 2}
+            }
+          ]
+        }
+      ],
       "validation": {
-        "meets_minimum": boolean,
-        "within_limit": boolean, 
-        "balanced": boolean
+        "meets_minimum": true,
+        "within_limit": true,
+        "balanced": true
       }
     }
+    
+    IMPORTANTE: Retorne APENAS JSON válido, sem texto antes ou depois. Use números reais, não palavras.
     
     Use apenas alimentos listados. Especifique preparo. Respeite cultura brasileira.
     `;

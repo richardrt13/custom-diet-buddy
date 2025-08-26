@@ -4,7 +4,8 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
-const MODEL_NAME = "gemini-1.5-pro-latest";
+// 1. Modelo atualizado para o mais robusto disponível
+const MODEL_NAME = "gemini-2.5-pro";
 const API_KEY = process.env.GEMINI_API_KEY as string;
 
 export const config = {
@@ -32,6 +33,7 @@ export default async function handler(req: Request) {
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({
       model: MODEL_NAME,
+      // 2. Instrução de Sistema para guiar o "pensamento" do modelo
       systemInstruction: "Você é um nutricionista especialista em culinária brasileira e na criação de planos alimentares detalhados. Sua principal função é gerar um plano alimentar em formato JSON válido, seguindo estritamente as diretrizes e regras fornecidas no prompt do usuário. Não adicione nenhum texto ou formatação fora do JSON.",
     });
 
@@ -40,6 +42,7 @@ export default async function handler(req: Request) {
       topK: 1,
       topP: 1,
       maxOutputTokens: 4096,
+      // 3. Garantia de que a saída será sempre um JSON válido
       responseMimeType: "application/json",
     };
 
@@ -62,6 +65,7 @@ export default async function handler(req: Request) {
       },
     ];
 
+    // 4. Prompt revisado para máxima eficiência e clareza
     const prompt = `
     Crie um plano alimentar para "${patientName}".
 
@@ -77,7 +81,7 @@ export default async function handler(req: Request) {
         - **Café da Manhã:** Deve conter uma fonte de carboidrato (pão, tapioca, cuscuz) e uma de proteína (ovos, queijo, leite). Não inclua itens típicos de almoço/jantar.
         - **Almoço/Jantar:** Deve conter uma fonte de carboidrato, uma de proteína e vegetais.
         - **Lanche:** Deve ser uma refeição leve, como frutas, iogurte ou uma pequena porção de carboidrato.
-    2.  **Quantidades:** Use quantidades realistas e específicas (100 gramas, 5 unidades, 200ml).
+    2.  **Quantidades:** Use quantidades realistas e comuns na culinária brasileira (ex: "1 concha média", "2 fatias", "1 filé médio").
     3.  **JSON Válido:** A saída DEVE ser um objeto JSON válido, sem nenhum texto ou formatação adicional. O JSON deve começar com "{" e terminar com "}".
 
     **Formato de Saída (JSON):**

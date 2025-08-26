@@ -24,6 +24,11 @@ interface NutritionPlan {
   foods: string[];
   generatedAt: Date;
   meals: Meal[];
+  macros_summary?: {
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+  };
 }
 
 interface PlanDisplayProps {
@@ -170,6 +175,29 @@ export default function PlanDisplay({ plan, onSave }: PlanDisplayProps) {
             <div className="text-sm text-muted-foreground">Alimentos</div>
           </div>
         </div>
+
+        {editedPlan.macros_summary && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">Resumo de Macronutrientes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-accent/20 rounded-lg">
+                  <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{editedPlan.macros_summary.protein_g}g</div>
+                      <div className="text-sm text-muted-foreground">Proteínas</div>
+                  </div>
+                  <div className="text-center">
+                      <div className="text-2xl font-bold text-info">{editedPlan.macros_summary.carbs_g}g</div>
+                      <div className="text-sm text-muted-foreground">Carboidratos</div>
+                  </div>
+                  <div className="text-center">
+                      <div className="text-2xl font-bold text-warning">{editedPlan.macros_summary.fat_g}g</div>
+                      <div className="text-sm text-muted-foreground">Gorduras</div>
+                  </div>
+              </div>
+            </div>
+          </>
+        )}
 
         <Separator />
 

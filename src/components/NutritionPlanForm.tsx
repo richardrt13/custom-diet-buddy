@@ -25,7 +25,7 @@ interface Patient {
 }
 
 interface NutritionPlanFormProps {
-  patient?: Patient | null; // Paciente agora é opcional
+  patient?: Patient | null;
   onPlanGenerated: (plan: any, patientId: string) => void;
 }
 
@@ -162,17 +162,17 @@ export default function NutritionPlanForm({
 
       const planData = await response.json();
 
-      const newPlan = {
-        patientName,
-        maxCalories: parseInt(maxCalories),
-        mealType,
-        macroPriority,
-        foods: selectedFoods,
-        generatedAt: new Date(),
-        meals: planData.meals,
-      };
-
-      onPlanGenerated(newPlan, finalPatientId);
+      onPlanGenerated(
+        {
+          ...planData, // Dados da IA (macros, refeições, etc.)
+          patientName,
+          maxCalories: parseInt(maxCalories),
+          mealType,
+          macroPriority,
+          foods: selectedFoods,
+        },
+        finalPatientId
+      );
     } catch (error) {
       console.error(error);
       toast({

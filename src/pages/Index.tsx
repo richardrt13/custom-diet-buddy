@@ -118,7 +118,11 @@ const Index = () => {
 
       const { data, error } = await supabase
           .from('plans')
-          .insert([{ user_id: user.id, patient_id: patientId, plan_details: planData }])
+          .insert([{ 
+              user_id: user.id, 
+              patient_id: patientId, 
+              plan_details: { ...planData, generatedAt: new Date() } // Espalha os dados e adiciona a data
+          }])
           .select()
           .single();
 
@@ -179,7 +183,6 @@ const Index = () => {
   };
 
   const handleCreatePatient = async () => {
-    //... (função sem alteração)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !newPatientName.trim()) {
         toast({ title: "Nome do paciente é obrigatório.", variant: "destructive" });
@@ -194,8 +197,9 @@ const Index = () => {
         toast({ title: "Paciente adicionado com sucesso!" });
         setAddPatientOpen(false);
         fetchStats();
-        setActiveTab("patients");
-        setTimeout(() => setActiveTab("patients"), 100);
+        // Forçar a atualização da lista de pacientes
+        setActiveTab("dashboard"); // Mude para uma aba temporária
+        setTimeout(() => setActiveTab("patients"), 50); // Mude de volta para forçar o re-render
     }
   };
 
@@ -206,7 +210,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-primary/5">
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        {/* ... (código do header sem alterações) ... */}
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -237,7 +240,6 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-8">
-            {/* ... (código do Hero Section sem alterações) ... */}
             <div className="relative overflow-hidden rounded-2xl shadow-strong">
               <img src={heroImage} alt="Nutrition planning interface" className="w-full h-64 object-cover"/>
               <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-success/60" />
@@ -267,7 +269,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="patients">
-            <PatientList key={stats.activePatients} onSelectPatient={handleSelectPatient} onAddPatient={handleAddPatientClick} />
+            <PatientList key={activeTab} onSelectPatient={handleSelectPatient} onAddPatient={handleAddPatientClick} />
           </TabsContent>
 
           <TabsContent value="create-plan">
@@ -329,7 +331,6 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* ... (código do Dialog para Adicionar Paciente sem alterações) ... */}
        <Dialog open={isAddPatientOpen} onOpenChange={setAddPatientOpen}>
             <DialogContent>
                 <DialogHeader>
@@ -349,7 +350,6 @@ const Index = () => {
             </DialogContent>
         </Dialog>
 
-        {/* Modal para Visualizar Plano */}
         <Dialog open={isPlanModalOpen} onOpenChange={setPlanModalOpen}>
             <DialogContent className="max-w-4xl">
                 <DialogHeader>

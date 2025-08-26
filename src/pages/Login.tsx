@@ -114,7 +114,7 @@ export default function Login() {
               <Heart className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">NutriPlan Pro</h1>
+              <h1 className="text-2xl font-bold">NutriPlan</h1>
               <p className="text-sm text-muted-foreground">
                 Inteligência para seus planos
               </p>

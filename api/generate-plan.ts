@@ -68,8 +68,8 @@ export default async function handler(req: Request) {
     **Diretrizes:**
     - **Calorias-alvo:** O total de calorias deve estar entre 85% e 100% de ${maxCalories} kcal (ou seja, entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories} kcal).
     - **Tipo de Refeição:** ${mealType}. Se for "all", distribua as calorias entre café da manhã (20-25%), almoço (30-35%), lanche (10-15%) e jantar (25-30%).
-    - **Prioridade de Macronutriente:** ${macroPriority}.
-    - **Alimentos Disponíveis:** Utilize apenas os seguintes alimentos: ${selectedFoods.join(", ")}.
+    - **Prioridade de Macronutriente:** A dieta deve priorizar **${macroPriority}**. Isso significa que a maior fonte de calorias deve vir deste macronutriente.
+    - **Alimentos Disponíveis:** Utilize **apenas** os seguintes alimentos: ${selectedFoods.join(", ")}.
     - **Observações Adicionais:** ${observations}.
 
     **Regras Estritas:**
@@ -78,7 +78,7 @@ export default async function handler(req: Request) {
         - **Almoço/Jantar:** Deve conter uma fonte de carboidrato, uma de proteína e vegetais.
         - **Lanche:** Deve ser uma refeição leve, como frutas, iogurte ou uma pequena porção de carboidrato.
     2.  - **Diretriz de Quantidades:** Use medidas precisas como gramas (g), quilogramas (kg), mililitros (ml) ou unidades (ex: "1 unidade", "2 fatias").
-    3.  **JSON Válido:** A saída DEVE ser um objeto JSON válido, sem nenhum texto ou formatação adicional. O JSON deve começar com "{" e terminar com "}".
+    3.  **JSON Válido e Completo:** A saída DEVE ser um objeto JSON válido, sem nenhum texto ou formatação adicional. O JSON deve começar com "{" e terminar com "}". **Todos os campos do formato de saída, incluindo \`macros_summary\` e o objeto \`macros\` para cada alimento, são obrigatórios e devem ser preenchidos.**
 
     **Formato de Saída (JSON):**
     {

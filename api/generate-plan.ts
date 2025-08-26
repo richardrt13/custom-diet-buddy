@@ -47,108 +47,52 @@ export default async function handler(req: Request) {
       },
     ];
 
+
     const prompt = `
-    Você é um nutricionista especialista em cultura alimentar brasileira. Crie um plano alimentar para o paciente "${patientName}".
-
-    **OBJETIVO PRINCIPAL:**
-    Criar um plano alimentar que OBRIGATORIAMENTE atinja entre 85% e 100% do valor calórico máximo permitido (${maxCalories} calorias).
-
-    **Restrições e Preferências:**
-    - **META CALÓRICA:** ${maxCalories} calorias (IMPORTANTE: O plano deve somar NO MÍNIMO ${Math.floor(maxCalories * 0.85)} calorias e NO MÁXIMO ${maxCalories} calorias)
-    - Tipo de Refeição: ${mealType}
-    - Prioridade de Macronutriente: ${macroPriority}
-    - Alimentos Disponíveis: ${selectedFoods.join(", ")}
-    - Observações Adicionais: ${observations}
-
-    **REGRAS OBRIGATÓRIAS:**
-
-    1. **CALORIAS:** 
-      - O total de calorias DEVE estar entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories}
-      - Se o primeiro cálculo ficar abaixo de 85%, AJUSTE as quantidades para cima
-      - Priorize atingir o valor máximo sem ultrapassar
-
-    2. **DISTRIBUIÇÃO CALÓRICA (quando tipo "all"):**
-      - Café da manhã: 20-25% das calorias totais
-      - Almoço: 30-35% das calorias totais  
-      - Lanche: 10-15% das calorias totais
-      - Jantar: 25-30% das calorias totais
-
-    3. **COMPOSIÇÃO DAS REFEIÇÕES:**
-      - Utilize APENAS os alimentos listados em "Alimentos Disponíveis"
-      - Especifique sempre o método de preparo (cozido, assado, grelhado)
-      - Cada refeição principal deve conter fontes de carboidrato, proteína e acompanhamento.
-      - Use porções realistas e culturalmente apropriadas.
-
-      **Regras culturais específicas:**
-      - **Café da manhã (breakfast):**
-        * Carboidratos típicos: pão, tapioca, bolo simples, frutas
-        * Proteínas típicas: ovo, leite, queijo, iogurte
-        * Acompanhamentos: café, leite, suco natural, pequena porção de fruta
-        * **NÃO incluir** alimentos incomuns no café da manhã brasileiro (como arroz, feijão, aipo, legumes cozidos ou saladas)
-
-      - **Almoço (lunch):**
-        * Carboidrato base: arroz, macarrão ou batata
-        * Proteína: frango, carne, peixe, ovo, feijão
-        * Acompanhamento: salada ou legumes
-        * Evite itens típicos do café da manhã (bolo, iogurte, tapioca, etc.)
-
-      - **Jantar (dinner):**
-        * Estrutura semelhante ao almoço (carboidrato + proteína + legumes/salada)
-        * Pode ser mais leve (ex.: menor quantidade de carboidrato ou uso de sopas)
-        * Evite alimentos de café da manhã
-
-      - **Lanche (snack):**
-        * Deve ser leve e prático
-        * Exemplos: fruta, iogurte, pão pequeno, tapioca, castanhas
-        * Evite pratos completos (ex.: arroz, feijão, salada, carne)
-
-    4. **AJUSTE DE QUANTIDADES:**
-      - Se necessário aumentar calorias, ajuste proporcionalmente:
-        * Carboidratos: aumente em 25-50g
-        * Proteínas: aumente em 20-30g
-        * Gorduras saudáveis: adicione 1-2 colheres de azeite
-      - Nunca use quantidades irreais (ex.: 500g de arroz em uma refeição)
-
-    **Formato da Resposta (JSON):**
+    Você é um nutricionista especialista em culinária brasileira. Crie um plano alimentar para "${patientName}" que atinja OBRIGATORIAMENTE 85-100% de ${maxCalories} calorias (${Math.floor(maxCalories * 0.85)}-${maxCalories} cal).
+    
+    **PARÂMETROS:**
+    - Tipo: ${mealType}
+    - Macro prioritário: ${macroPriority}  
+    - Alimentos: ${selectedFoods.join(", ")}
+    - Observações: ${observations}
+    
+    **REGRAS:**
+    
+    1. **CALORIAS:** Total entre ${Math.floor(maxCalories * 0.85)}-${maxCalories}. Se abaixo de 85%, AJUSTE para cima.
+    
+    2. **DISTRIBUIÇÃO (tipo "all"):** Café 20-25%, Almoço 30-35%, Lanche 10-15%, Jantar 25-30%
+    
+    3. **COMPOSIÇÃO POR REFEIÇÃO:**
+       - **Café:** pão/tapioca/bolo + ovo/leite/queijo + café/suco. NÃO: arroz, feijão, salada
+       - **Almoço/Jantar:** arroz/macarrão + carne/frango/peixe + salada/legumes
+       - **Lanche:** fruta/iogurte/pão pequeno. NÃO: pratos completos
+    
+    4. **AJUSTES:** Carboidrato +25-50g, Proteína +20-30g, Azeite +1-2 col. Quantidades realistas.
+    
+    **FORMATO JSON:**
     {
-      "total_calories": número_total_de_calorias_do_plano,
-      "calories_percentage": percentual_em_relação_ao_máximo,
-      "meals": [
-        {
-          "type": "breakfast" | "lunch" | "dinner" | "snack",
-          "subtotal_calories": total_de_calorias_desta_refeição,
-          "foods": [
-            {
-              "name": "Nome do Alimento",
-              "preparation": "Forma de preparo",
-              "quantity": "Quantidade (ex: 150g, 2 unidades médias)",
-              "calories": numero_de_calorias,
-              "macros": {
-                "protein": gramas_de_proteína,
-                "carbs": gramas_de_carboidrato,
-                "fat": gramas_de_gordura
-              }
-            }
-          ]
-        }
-      ],
+      "total_calories": número,
+      "calories_percentage": percentual,
+      "meals": [{
+        "type": "breakfast|lunch|dinner|snack",
+        "subtotal_calories": número,
+        "foods": [{
+          "name": "nome",
+          "preparation": "preparo",
+          "quantity": "quantidade",
+          "calories": número,
+          "macros": {"protein": g, "carbs": g, "fat": g}
+        }]
+      }],
       "validation": {
-        "meets_minimum": boolean (true se >= 85% do máximo),
-        "within_limit": boolean (true se <= máximo),
-        "balanced": boolean (true se tem todos grupos alimentares)
+        "meets_minimum": boolean,
+        "within_limit": boolean, 
+        "balanced": boolean
       }
     }
-
-    **VALIDAÇÃO FINAL:**
-    Antes de retornar o JSON, verifique:
-    1. ✓ Total de calorias está entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories}?
-    2. ✓ Todas as refeições estão balanceadas e culturalmente adequadas?
-    3. ✓ As quantidades são realistas para consumo?
-    4. ✓ Respeitou a cultura alimentar brasileira?
-
-    Se o total estiver abaixo do mínimo, RECALCULE aumentando as porções proporcionalmente.
-
-    **Observações do Paciente:** ${observations}
+    
+    Use apenas alimentos listados. Especifique preparo. Respeite cultura brasileira.
     `;
 
     const result = await model.generateContent(prompt);

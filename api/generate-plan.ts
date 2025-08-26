@@ -2,10 +2,9 @@ import {
   GoogleGenerativeAI,
   HarmCategory,
   HarmBlockThreshold,
-  InlineDataPart,
 } from "@google/generative-ai";
 
-const MODEL_NAME = "gemini-2.0-flash";
+const MODEL_NAME = "gemini-1.5-pro-latest";
 const API_KEY = process.env.GEMINI_API_KEY as string;
 
 export const config = {
@@ -31,13 +30,17 @@ export default async function handler(req: Request) {
     } = await req.json();
 
     const genAI = new GoogleGenerativeAI(API_KEY);
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const model = genAI.getGenerativeModel({
+      model: MODEL_NAME,
+      systemInstruction: "Você é um nutricionista especialista em culinária brasileira e na criação de planos alimentares detalhados. Sua principal função é gerar um plano alimentar em formato JSON válido, seguindo estritamente as diretrizes e regras fornecidas no prompt do usuário. Não adicione nenhum texto ou formatação fora do JSON.",
+    });
 
     const generationConfig = {
-      temperature: 0.9,
+      temperature: 0.8,
       topK: 1,
       topP: 1,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
     };
 
     const safetySettings = [
@@ -45,72 +48,78 @@ export default async function handler(req: Request) {
         category: HarmCategory.HARM_CATEGORY_HARASSMENT,
         threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
       },
+       {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+      },
     ];
 
     const prompt = `
-    Você é um nutricionista especialista em culinária brasileira. Crie um plano alimentar para "${patientName}" que atinja OBRIGATORIAMENTE 85-100% de ${maxCalories} calorias (${Math.floor(maxCalories * 0.85)}-${maxCalories} cal).
-    
-    **PARÂMETROS:**
-    - Tipo: ${mealType}
-    - Macro prioritário: ${macroPriority}  
-    - Alimentos: ${selectedFoods.join(", ")}
-    - Observações: ${observations}
-    
-    **REGRAS:**
-    
-    1. **CALORIAS:** Total entre ${Math.floor(maxCalories * 0.85)}-${maxCalories}. Se abaixo de 85%, AJUSTE para cima.
-    
-    2. **DISTRIBUIÇÃO (tipo "all"):** Café 20-25%, Almoço 30-35%, Lanche 10-15%, Jantar 25-30%
-    
-    3. **COMPOSIÇÃO POR REFEIÇÃO:**
-       - **Café:** pão/tapioca/bolo + ovo/leite/queijo + café/suco. NÃO: arroz, feijão, salada
-       - **Almoço/Jantar:** arroz/macarrão + carne/frango/peixe + salada/legumes
-       - **Lanche:** fruta/iogurte/pão pequeno. NÃO: pratos completos
-    
-    4. **AJUSTES:** Carboidrato +25-50g, Proteína +20-30g, Azeite +1-2 col. Quantidades realistas.
-    
-    **FORMATO JSON (OBRIGATÓRIO - JSON VÁLIDO APENAS):**
+    Crie um plano alimentar para "${patientName}".
+
+    **Diretrizes:**
+    - **Calorias-alvo:** O total de calorias deve estar entre 85% e 100% de ${maxCalories} kcal (ou seja, entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories} kcal).
+    - **Tipo de Refeição:** ${mealType}. Se for "all", distribua as calorias entre café da manhã (20-25%), almoço (30-35%), lanche (10-15%) e jantar (25-30%).
+    - **Prioridade de Macronutriente:** ${macroPriority}.
+    - **Alimentos Disponíveis:** Utilize apenas os seguintes alimentos: ${selectedFoods.join(", ")}.
+    - **Observações Adicionais:** ${observations}.
+
+    **Regras Estritas:**
+    1.  **Composição das Refeições:**
+        - **Café da Manhã:** Deve conter uma fonte de carboidrato (pão, tapioca, cuscuz) e uma de proteína (ovos, queijo, leite). Não inclua itens típicos de almoço/jantar.
+        - **Almoço/Jantar:** Deve conter uma fonte de carboidrato, uma de proteína e vegetais.
+        - **Lanche:** Deve ser uma refeição leve, como frutas, iogurte ou uma pequena porção de carboidrato.
+    2.  **Quantidades:** Use quantidades realistas e específicas (100 gramas, 5 unidades, 200ml).
+    3.  **JSON Válido:** A saída DEVE ser um objeto JSON válido, sem nenhum texto ou formatação adicional. O JSON deve começar com "{" e terminar com "}".
+
+    **Formato de Saída (JSON):**
     {
-      "total_calories": 1800,
-      "calories_percentage": 95.5,
+      "total_calories": <número>,
+      "calories_percentage_of_max": <número>,
+      "macros_summary": {
+        "protein_g": <número>,
+        "carbs_g": <número>,
+        "fat_g": <número>
+      },
       "meals": [
         {
-          "type": "breakfast",
-          "subtotal_calories": 400,
+          "type": "<breakfast, lunch, dinner, ou snack>",
+          "subtotal_calories": <número>,
           "foods": [
             {
-              "name": "Pão integral",
-              "preparation": "torrado",
-              "quantity": "2 fatias",
-              "calories": 160,
-              "macros": {"protein": 6, "carbs": 30, "fat": 2}
+              "name": "<nome do alimento>",
+              "preparation": "<modo de preparo, ex: 'grelhado', 'cozido'>",
+              "quantity": "<quantidade, ex: '100g' ou '1 filé médio'>",
+              "calories": <número>,
+              "macros": {
+                "protein": <número>,
+                "carbs": <número>,
+                "fat": <número>
+              }
             }
           ]
         }
       ],
       "validation": {
-        "meets_minimum": true,
-        "within_limit": true,
-        "balanced": true
+        "meets_calorie_target": <true ou false>,
+        "used_only_allowed_foods": <true ou false>
       }
     }
-    
-    IMPORTANTE: Retorne APENAS JSON válido, sem texto antes ou depois. Use números reais, não palavras.
-    
-    Use apenas alimentos listados. Especifique preparo. Respeite cultura brasileira.
     `;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
 
-    // Limpa a resposta para garantir que seja um JSON válido
-    const cleanedText = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
-    return new Response(cleanedText, {
+    return new Response(text, {
       status: 200,
       headers: {
         "Content-Type": "application/json",

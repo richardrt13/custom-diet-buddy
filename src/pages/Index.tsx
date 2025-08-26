@@ -1,12 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Users, Brain, TrendingUp, FileText, CalendarDays } from "lucide-react";
+import { Heart, Users, Brain, TrendingUp, FileText, CalendarDays, LogOut } from "lucide-react";
 import NutritionPlanForm from "@/components/NutritionPlanForm";
 import PlanDisplay from "@/components/PlanDisplay";
 import PatientList from "@/components/PatientList";
 import heroImage from "@/assets/nutrition-hero.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [generatedPlan, setGeneratedPlan] = useState(null);
@@ -26,6 +28,10 @@ const Index = () => {
     console.log("Add new patient");
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-primary/5">
       {/* Header */}
@@ -41,10 +47,11 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Planos alimentares inteligentes</p>
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              <Brain className="h-4 w-4 mr-2" />
-              IA Ativa
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>

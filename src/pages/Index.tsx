@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ShoppingListForm from "@/components/ShoppingListForm"; 
+import { ShoppingCart } from "lucide-react"; 
 
 // Interfaces
 interface Patient {
@@ -232,12 +234,13 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-4">
-            <TabsTrigger value="dashboard" className="flex items-center gap-1 text-xs"><TrendingUp className="h-3 w-3" />Dashboard</TabsTrigger>
-            <TabsTrigger value="patients" className="flex items-center gap-1 text-xs"><Users className="h-3 w-3" />Pacientes</TabsTrigger>
-            <TabsTrigger value="create-plan" className="flex items-center gap-1 text-xs"><FileText className="h-3 w-3" />Criar Plano</TabsTrigger>
-            <TabsTrigger value="plans" className="flex items-center gap-1 text-xs"><CalendarDays className="h-3 w-3" />Planos Gerados</TabsTrigger>
-          </TabsList>
+            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-5"> {/* Altere para grid-cols-5 */}
+                <TabsTrigger value="dashboard" className="flex items-center gap-1 text-xs"><TrendingUp className="h-3 w-3" />Dashboard</TabsTrigger>
+                <TabsTrigger value="patients" className="flex items-center gap-1 text-xs"><Users className="h-3 w-3" />Pacientes</TabsTrigger>
+                <TabsTrigger value="create-plan" className="flex items-center gap-1 text-xs"><FileText className="h-3 w-3" />Criar Plano</TabsTrigger>
+                <TabsTrigger value="plans" className="flex items-center gap-1 text-xs"><CalendarDays className="h-3 w-3" />Planos Gerados</TabsTrigger>
+                <TabsTrigger value="shopping-list" className="flex items-center gap-1 text-xs"><ShoppingCart className="h-3 w-3" />Lista de Compras</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="dashboard" className="space-y-8">
             <div className="relative overflow-hidden rounded-2xl shadow-strong">
@@ -327,6 +330,10 @@ const Index = () => {
                     )}
                 </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="shopping-list">
+              <ShoppingListForm />
           </TabsContent>
         </Tabs>
       </main>

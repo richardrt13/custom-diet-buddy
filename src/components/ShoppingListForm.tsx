@@ -196,8 +196,9 @@ export default function ShoppingListForm() {
           </div>
           {people.map((person, index) => (
             <Card key={index} className="p-4 relative">
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-0">
-                <div className="space-y-1">
+              {/* ÁREA CORRIGIDA COM FLEXBOX */}
+              <CardContent className="flex flex-wrap gap-4 p-0">
+                <div className="flex-1 space-y-1 min-w-[150px]">
                   <Label htmlFor={`gender-${index}`}>Gênero *</Label>
                   <Select value={person.gender} onValueChange={(value) => handlePersonChange(index, "gender", value)}>
                     <SelectTrigger id={`gender-${index}`}><SelectValue placeholder="Gênero" /></SelectTrigger>
@@ -207,19 +208,19 @@ export default function ShoppingListForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="flex-1 space-y-1 min-w-[150px]">
                   <Label htmlFor={`weight-${index}`}>Peso (kg) *</Label>
                   <Input id={`weight-${index}`} type="number" placeholder="Ex: 70" value={person.weight} onChange={(e) => handlePersonChange(index, "weight", e.target.value)} />
                 </div>
-                <div className="space-y-1">
+                <div className="flex-1 space-y-1 min-w-[150px]">
                   <Label htmlFor={`height-${index}`}>Altura (cm) *</Label>
                   <Input id={`height-${index}`} type="number" placeholder="Ex: 175" value={person.height} onChange={(e) => handlePersonChange(index, "height", e.target.value)} />
                 </div>
-                <div className="space-y-1">
+                <div className="flex-1 space-y-1 min-w-[150px]">
                   <Label htmlFor={`age-${index}`}>Idade *</Label>
                   <Input id={`age-${index}`} type="number" placeholder="Ex: 30" value={person.age} onChange={(e) => handlePersonChange(index, "age", e.target.value)} />
                 </div>
-                <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                <div className="flex-1 space-y-1 min-w-[150px]">
                   <Label htmlFor={`tmb-${index}`} className="flex items-center gap-1">
                     TMB (Opcional)
                   </Label>

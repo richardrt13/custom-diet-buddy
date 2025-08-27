@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Users, FileText, CalendarDays, LogOut, TrendingUp, Trash2, Eye } from "lucide-react";
+import { Heart, Users, FileText, CalendarDays, LogOut, TrendingUp, Trash2, Eye, ShoppingCart } from "lucide-react";
 import NutritionPlanForm from "@/components/NutritionPlanForm";
 import PlanDisplay from "@/components/PlanDisplay";
 import PatientList from "@/components/PatientList";
@@ -33,8 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ShoppingListForm from "@/components/ShoppingListForm"; 
-import { ShoppingCart } from "lucide-react"; 
+import ShoppingListForm from "@/components/ShoppingListForm";
 
 // Interfaces
 interface Patient {
@@ -120,9 +119,9 @@ const Index = () => {
 
       const { data, error } = await supabase
           .from('plans')
-          .insert([{ 
-              user_id: user.id, 
-              patient_id: patientId, 
+          .insert([{
+              user_id: user.id,
+              patient_id: patientId,
               plan_details: { ...planData, generatedAt: new Date() } // Espalha os dados e adiciona a data
           }])
           .select()
@@ -234,12 +233,27 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-5"> {/* Altere para grid-cols-5 */}
-                <TabsTrigger value="dashboard" className="flex items-center gap-1 text-xs"><TrendingUp className="h-3 w-3" />Dashboard</TabsTrigger>
-                <TabsTrigger value="patients" className="flex items-center gap-1 text-xs"><Users className="h-3 w-3" />Pacientes</TabsTrigger>
-                <TabsTrigger value="create-plan" className="flex items-center gap-1 text-xs"><FileText className="h-3 w-3" />Criar Plano</TabsTrigger>
-                <TabsTrigger value="plans" className="flex items-center gap-1 text-xs"><CalendarDays className="h-3 w-3" />Planos Gerados</TabsTrigger>
-                <TabsTrigger value="shopping-list" className="flex items-center gap-1 text-xs"><ShoppingCart className="h-3 w-3" />Lista de Compras</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5 gap-1">
+                <TabsTrigger value="dashboard" className="flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" />
+                    Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="patients" className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    Pacientes
+                </TabsTrigger>
+                <TabsTrigger value="create-plan" className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    Criar Plano
+                </TabsTrigger>
+                <TabsTrigger value="plans" className="flex items-center gap-1">
+                    <CalendarDays className="h-4 w-4" />
+                    Planos Gerados
+                </TabsTrigger>
+                <TabsTrigger value="shopping-list" className="flex items-center gap-1">
+                    <ShoppingCart className="h-4 w-4" />
+                    Lista de Compras
+                </TabsTrigger>
             </TabsList>
 
           <TabsContent value="dashboard" className="space-y-8">

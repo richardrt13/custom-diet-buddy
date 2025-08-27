@@ -1,5 +1,6 @@
 // src/pages/Index.tsx
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +19,6 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -50,7 +50,7 @@ interface Plan {
     patient_id: string;
     plan_details: any;
     created_at: Date;
-    patients: { name: string }; // Para obter o nome do paciente através de um join
+    patients: { name: string };
 }
 
 const Index = () => {
@@ -62,7 +62,8 @@ const Index = () => {
   const [isAddPatientOpen, setAddPatientOpen] = useState(false);
   const [newPatientName, setNewPatientName] = useState("");
   const { toast } = useToast();
-  const [stats, setStats] = useState({ activePatients: 0, plansCreated: 0 });
+  const [stats, setStats] = useState({ activePatients: 0, plansCreated: 0, shoppingListsCreated: 0 });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchStats();
@@ -75,12 +76,7 @@ const Index = () => {
 
       const { data, error } = await supabase
           .from('plans')
-          .select(`
-              id,
-              created_at,
-              plan_details,
-              patients ( name )
-          `)
+          .select(`id, created_at, plan_details, patients ( name )`)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
@@ -106,10 +102,17 @@ const Index = () => {
       .from('plans')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
+      
+    // MODIFICAÇÃO: Busca a contagem da nova tabela
+    const { count: shoppingListsCount } = await supabase
+      .from('shopping_lists')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
 
     setStats({
       activePatients: patientsCount || 0,
-      plansCreated: plansCount || 0
+      plansCreated: plansCount || 0,
+      shoppingListsCreated: shoppingListsCount || 0,
     });
   };
 
@@ -117,15 +120,13 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
           .from('plans')
           .insert([{
               user_id: user.id,
               patient_id: patientId,
-              plan_details: { ...planData, generatedAt: new Date() } // Espalha os dados e adiciona a data
-          }])
-          .select()
-          .single();
+              plan_details: { ...planData, generatedAt: new Date() }
+          }]);
 
       if (error) {
           toast({ title: "Erro ao salvar o plano", description: error.message, variant: "destructive" });
@@ -135,6 +136,25 @@ const Index = () => {
           await fetchStats();
           setActiveTab("plans");
       }
+  };
+  
+  // MODIFICAÇÃO: Função para salvar na tabela 'shopping_lists'
+  const handleShoppingListGenerated = async (listData: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+        .from('shopping_lists')
+        .insert([{
+            user_id: user.id,
+            list_details: { ...listData, generatedAt: new Date() }
+        }]);
+
+    if (error) {
+        toast({ title: "Erro ao salvar a lista de compras", description: error.message, variant: "destructive" });
+    } else {
+        await fetchStats();
+    }
   };
 
   const handleSavePlan = async (updatedPlanDetails: any) => {
@@ -153,7 +173,6 @@ const Index = () => {
       fetchAllPlans();
     }
   };
-
 
   const handleDeletePlan = async (planId: string) => {
     const { error } = await supabase.from('plans').delete().eq('id', planId);
@@ -198,9 +217,8 @@ const Index = () => {
         toast({ title: "Paciente adicionado com sucesso!" });
         setAddPatientOpen(false);
         fetchStats();
-        // Forçar a atualização da lista de pacientes
-        setActiveTab("dashboard"); // Mude para uma aba temporária
-        setTimeout(() => setActiveTab("patients"), 50); // Mude de volta para forçar o re-render
+        setActiveTab("dashboard");
+        setTimeout(() => setActiveTab("patients"), 50);
     }
   };
 
@@ -278,9 +296,15 @@ const Index = () => {
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Planos Criados</CardTitle><FileText className="h-4 w-4 text-muted-foreground" /></CardHeader>
                 <CardContent><div className="text-2xl font-bold text-success">{stats.plansCreated}</div></CardContent>
               </Card>
-              <Card className="shadow-soft">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader>
-                <CardContent><div className="text-2xl font-bold text-info">94%</div><p className="text-xs text-muted-foreground">Dados fictícios</p></CardContent>
+              <Card className="shadow-soft hover:shadow-medium transition-shadow cursor-pointer" onClick={() => navigate("/shopping-lists")}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Listas de Compras</CardTitle>
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-info">{stats.shoppingListsCreated}</div>
+                    <p className="text-xs text-muted-foreground">Total de listas geradas</p>
+                </CardContent>
               </Card>
             </div>
           </TabsContent>
@@ -304,7 +328,7 @@ const Index = () => {
                             {allPlans.map(plan => (
                                 <div key={plan.id} className="flex justify-between items-center p-3 border rounded-lg">
                                     <div>
-                                        <p className="font-semibold">{plan.patients.name}</p>
+                                        <p className="font-semibold">{plan.patients?.name || 'Geral'}</p>
                                         <p className="text-sm text-muted-foreground">
                                             Criado em: {new Date(plan.created_at).toLocaleDateString('pt-BR')}
                                         </p>
@@ -323,7 +347,7 @@ const Index = () => {
                                                 <AlertDialogHeader>
                                                 <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                    Esta ação não pode ser desfeita. Isso irá deletar permanentemente o plano alimentar.
+                                                    Esta ação não pode ser desfeita. Isso irá deletar permanentemente o plano.
                                                 </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
@@ -347,7 +371,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="shopping-list">
-              <ShoppingListForm />
+              <ShoppingListForm onShoppingListGenerated={handleShoppingListGenerated} />
           </TabsContent>
         </Tabs>
       </main>

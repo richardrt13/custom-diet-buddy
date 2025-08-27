@@ -8,7 +8,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
-import PatientDetails from "./pages/PatientDetails"; // Importe a nova página
+import PatientDetails from "./pages/PatientDetails";
+import ShoppingListsPage from "./pages/ShoppingListsPage"; // 1. Importe a nova página
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -20,7 +21,6 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ... (o resto do useEffect permanece igual)
     const getSession = async () => {
       const {
         data: { session },
@@ -55,10 +55,14 @@ const App = () => {
               path="/"
               element={session ? <Index /> : <Navigate to="/login" />}
             />
-            {/* Adicione a nova rota protegida abaixo */}
             <Route
               path="/patient/:patientId"
               element={session ? <PatientDetails /> : <Navigate to="/login" />}
+            />
+            {/* 2. Adicione a nova rota protegida abaixo */}
+            <Route
+              path="/shopping-lists"
+              element={session ? <ShoppingListsPage /> : <Navigate to="/login" />}
             />
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<ResetPassword />} />

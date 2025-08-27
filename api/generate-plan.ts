@@ -62,58 +62,81 @@ export default async function handler(req: Request) {
       },
     ];
 
-    const prompt = `
-    Crie um plano alimentar para "${patientName}".
+    // MODIFICAÇÃO PRINCIPAL: Lógica condicional para o prompt
+    let prompt;
 
-    **Diretrizes:**
-    - **Calorias-alvo:** O total de calorias deve estar entre 85% e 100% de ${maxCalories} kcal (ou seja, entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories} kcal).
-    - **Tipo de Refeição:** ${mealType}. Se for "all", distribua as calorias entre café da manhã (20-25%), almoço (30-35%), lanche (10-15%) e jantar (25-30%).
-    - **Prioridade de Macronutriente:** A dieta deve priorizar **${macroPriority}**. Isso significa que a maior fonte de calorias deve vir deste macronutriente.
-    - **Alimentos Disponíveis:** Utilize **apenas** os seguintes alimentos: ${selectedFoods.join(", ")}.
-    - **Observações Adicionais:** ${observations}.
+    if (mealType === "all") {
+      prompt = `
+      Crie um plano alimentar completo para "${patientName}".
 
-    **Regras Estritas:**
-    1.  **Composição das Refeições:**
-        - **Café da Manhã:** Deve conter uma fonte de carboidrato (pão, tapioca, cuscuz) e uma de proteína (ovos, queijo, leite). Não inclua itens típicos de almoço/jantar.
-        - **Almoço/Jantar:** Deve conter uma fonte de carboidrato, uma de proteína e vegetais.
-        - **Lanche:** Deve ser uma refeição leve, como frutas, iogurte ou uma pequena porção de carboidrato.
-    2.  - **Diretriz de Quantidades:** Use medidas precisas como gramas (g), quilogramas (kg), mililitros (ml) ou unidades (ex: "1 unidade", "2 fatias").
-    3.  **JSON Válido e Completo:** A saída DEVE ser um objeto JSON válido, sem nenhum texto ou formatação adicional. O JSON deve começar com "{" e terminar com "}". **Todos os campos do formato de saída, incluindo \`macros_summary\` e o objeto \`macros\` para cada alimento, são obrigatórios e devem ser preenchidos.**
+      **Diretrizes:**
+      - **Calorias-alvo:** O total de calorias deve estar entre 85% e 100% de ${maxCalories} kcal (ou seja, entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories} kcal).
+      - **Tipo de Refeição:** Todas as refeições do dia. Distribua as calorias entre Café da Manhã (20-25%), Lanche da Manhã (5-10%), Almoço (30-35%), Lanche da Tarde (5-10%), Jantar (20-25%) e Ceia (0-5%, opcional).
+      - **Prioridade de Macronutriente:** A dieta deve priorizar **${macroPriority}**.
+      - **Alimentos Disponíveis:** Utilize **apenas** os seguintes alimentos: ${selectedFoods.join(", ")}.
+      - **Observações Adicionais:** ${observations}.
 
-    **Formato de Saída (JSON):**
-    {
-      "total_calories": <número>,
-      "calories_percentage_of_max": <número>,
-      "macros_summary": {
-        "protein_g": <número>,
-        "carbs_g": <número>,
-        "fat_g": <número>
-      },
-      "meals": [
-        {
-          "type": "<breakfast, lunch, dinner, ou snack>",
-          "subtotal_calories": <número>,
-          "foods": [
-            {
-              "name": "<nome do alimento>",
-              "preparation": "<modo de preparo, ex: 'grelhado', 'cozido'>",
-              "quantity": "<quantidade, ex: '100g' ou '1 filé médio'>",
-              "calories": <número>,
-              "macros": {
-                "protein": <número>,
-                "carbs": <número>,
-                "fat": <número>
-              }
-            }
-          ]
-        }
-      ],
-      "validation": {
-        "meets_calorie_target": <true ou false>,
-        "used_only_allowed_foods": <true ou false>
+      **Regras Estritas:**
+      1.  **JSON Válido e Completo:** A saída DEVE ser um objeto JSON válido. Todos os campos são obrigatórios.
+      2.  **Quantidades:** Use medidas precisas (gramas, ml, unidades).
+
+      **Formato de Saída (JSON):**
+      {
+        "total_calories": <número>,
+        "calories_percentage_of_max": <número>,
+        "macros_summary": { "protein_g": <número>, "carbs_g": <número>, "fat_g": <número> },
+        "meals": [
+          { "type": "breakfast", "subtotal_calories": <número>, "foods": [...] },
+          { "type": "morning_snack", "subtotal_calories": <número>, "foods": [...] },
+          { "type": "lunch", "subtotal_calories": <número>, "foods": [...] },
+          { "type": "afternoon_snack", "subtotal_calories": <número>, "foods": [...] },
+          { "type": "dinner", "subtotal_calories": <número>, "foods": [...] },
+          { "type": "supper", "subtotal_calories": <número>, "foods": [...] }
+        ],
+        "validation": { "meets_calorie_target": <true ou false>, "used_only_allowed_foods": <true ou false> }
       }
+      `;
+    } else {
+      // Prompt original para refeições únicas
+      prompt = `
+      Crie um plano alimentar para "${patientName}".
+
+      **Diretrizes:**
+      - **Calorias-alvo:** O total de calorias deve estar entre 85% e 100% de ${maxCalories} kcal (ou seja, entre ${Math.floor(maxCalories * 0.85)} e ${maxCalories} kcal).
+      - **Tipo de Refeição:** ${mealType}.
+      - **Prioridade de Macronutriente:** A dieta deve priorizar **${macroPriority}**.
+      - **Alimentos Disponíveis:** Utilize **apenas** os seguintes alimentos: ${selectedFoods.join(", ")}.
+      - **Observações Adicionais:** ${observations}.
+
+      **Regras Estritas:**
+      1.  **JSON Válido e Completo:** A saída DEVE ser um objeto JSON válido. Todos os campos são obrigatórios.
+      2.  **Quantidades:** Use medidas precisas (gramas, ml, unidades).
+
+      **Formato de Saída (JSON):**
+      {
+        "total_calories": <número>,
+        "calories_percentage_of_max": <número>,
+        "macros_summary": { "protein_g": <número>, "carbs_g": <número>, "fat_g": <número> },
+        "meals": [
+          {
+            "type": "${mealType}",
+            "subtotal_calories": <número>,
+            "foods": [
+              {
+                "name": "<nome do alimento>",
+                "preparation": "<modo de preparo>",
+                "quantity": "<quantidade>",
+                "calories": <número>,
+                "macros": { "protein": <número>, "carbs": <número>, "fat": <número> }
+              }
+            ]
+          }
+        ],
+        "validation": { "meets_calorie_target": <true ou false>, "used_only_allowed_foods": <true ou false> }
+      }
+      `;
     }
-    `;
+
 
     const result = await model.generateContent(prompt);
     const response = result.response;

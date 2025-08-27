@@ -36,11 +36,15 @@ interface PlanDisplayProps {
   onSave?: (updatedPlan: NutritionPlan) => void;
 }
 
+// MODIFICAÇÃO: Adicionados novos labels de refeição
 const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: "Café da manhã",
+  morning_snack: "Lanche da Manhã",
   lunch: "Almoço",
+  afternoon_snack: "Lanche da Tarde",
   dinner: "Jantar",
-  snack: "Lanche",
+  supper: "Ceia",
+  snack: "Lanche", // Mantido para refeições únicas
   all: "Todas as refeições",
 };
 
@@ -153,7 +157,7 @@ export default function PlanDisplay({ plan, onSave }: PlanDisplayProps) {
             Máx. {editedPlan.maxCalories} kcal
           </div>
           <Badge variant="outline">
-            {MEAL_TYPE_LABELS[editedPlan.mealType]}
+            {MEAL_TYPE_LABELS[editedPlan.mealType] || "Refeição"}
           </Badge>
           <Badge variant="secondary">
             Foco: {MACRO_LABELS[editedPlan.macroPriority]}
@@ -207,7 +211,7 @@ export default function PlanDisplay({ plan, onSave }: PlanDisplayProps) {
             <Card key={mealIndex} className="shadow-soft">
               <CardHeader className="pb-3 flex-row justify-between items-center">
                 <CardTitle className="text-lg text-primary">
-                  {MEAL_TYPE_LABELS[meal.type]}
+                  {MEAL_TYPE_LABELS[meal.type] || meal.type}
                 </CardTitle>
                 {isEditing && (
                     <Button size="sm" variant="ghost" onClick={() => handleAddFood(mealIndex)}>

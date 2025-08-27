@@ -218,7 +218,7 @@ const Index = () => {
                 <Heart className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">NutriPlan Pro</h1>
+                <h1 className="text-xl font-bold">NutriPlan</h1>
                 <p className="text-sm text-muted-foreground">Planos alimentares inteligentes</p>
               </div>
             </div>

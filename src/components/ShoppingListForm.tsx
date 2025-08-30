@@ -26,7 +26,13 @@ interface Person {
   tmb: string;
 }
 
-export default function ShoppingListForm() {
+// LINHA MODIFICADA: Adicionada a interface de props
+interface ShoppingListFormProps {
+  onShoppingListGenerated: (listData: any) => void;
+}
+
+// LINHA MODIFICADA: Adicionada a prop 'onShoppingListGenerated'
+export default function ShoppingListForm({ onShoppingListGenerated }: ShoppingListFormProps) {
   const [objective, setObjective] = useState("");
   const [people, setPeople] = useState<Person[]>([{ gender: "", weight: "", height: "", age: "", tmb: "" }]);
   const [timePeriod, setTimePeriod] = useState("");
@@ -94,8 +100,12 @@ export default function ShoppingListForm() {
 
       const data = await response.json();
       setShoppingList(data);
+
+      // LINHA MODIFICADA: Chama a função para salvar a lista no banco de dados
+      onShoppingListGenerated({ listData: data, objective, people, timePeriod });
+
       toast({
-        title: "Lista de Compras Gerada!",
+        title: "Lista de Compras Gerada e Salva!",
         description: "Agora você pode gerar um plano alimentar com base na lista.",
       });
     } catch (error) {
@@ -196,7 +206,6 @@ export default function ShoppingListForm() {
           </div>
           {people.map((person, index) => (
             <Card key={index} className="p-4 relative">
-              {/* ÁREA CORRIGIDA COM FLEXBOX */}
               <CardContent className="flex flex-wrap gap-4 p-0">
                 <div className="flex-1 space-y-1 min-w-[150px]">
                   <Label htmlFor={`gender-${index}`}>Gênero *</Label>

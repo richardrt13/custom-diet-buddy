@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Trash2, Utensils, FileDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -23,23 +23,36 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
+import MealPlanDisplay from "@/components/MealPlanDisplay";
+import jsPDF from 'jspdf';
+// Importe o autoTable como um módulo padrão
+import autoTable from 'jspdf-autotable';
 
 interface ShoppingList {
   id: string;
   created_at: string;
   list_details: {
-    lista_de_compras?: { // Tornando a propriedade opcional
-        categoria: string;
-        itens: { item: string; quantidade: string }[];
-    }[];
-    observacoes?: string; // Tornando a propriedade opcional
-  } | null; // list_details também pode ser nulo
+    listData?: {
+        lista_de_compras?: {
+            categoria: string;
+            itens: { item: string; quantidade: string }[];
+        }[];
+        observacoes?: string;
+    },
+    people?: any[];
+    timePeriod?: string;
+    objective?: string;
+  } | null;
 }
 
 export default function ShoppingListsPage() {
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mealPlan, setMealPlan] = useState<any>(null);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState<string | null>(null);
+  const [isPlanDialogOpen, setPlanDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -74,6 +87,51 @@ export default function ShoppingListsPage() {
     fetchShoppingLists();
   }, []);
 
+  const handleGenerateMealPlan = async (list: ShoppingList) => {
+    if (!list.list_details || !list.list_details.listData || !list.list_details.people || !list.list_details.timePeriod || !list.list_details.objective) {
+      toast({
+        title: "Dados incompletos",
+        description: "Não foi possível gerar o plano pois faltam informações na lista de compras.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsGeneratingPlan(list.id);
+    setMealPlan(null);
+
+    try {
+      const response = await fetch("/api/generate-meal-plan-from-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shoppingList: list.list_details.listData,
+          people: list.list_details.people,
+          timePeriod: list.list_details.timePeriod,
+          objective: list.list_details.objective,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Falha ao gerar o plano alimentar");
+
+      const data = await response.json();
+      setMealPlan(data);
+      setPlanDialogOpen(true);
+      toast({
+        title: "Plano Alimentar Gerado!",
+        description: "Seu plano alimentar personalizado está pronto.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao gerar plano alimentar",
+        description: "Ocorreu um erro. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPlan(null);
+    }
+  };
+
   const handleDeleteList = async (listId: string) => {
     const { error } = await supabase.from("shopping_lists").delete().eq("id", listId);
 
@@ -99,7 +157,49 @@ export default function ShoppingListsPage() {
     });
   };
 
-  const countTotalItems = (list?: ShoppingList['list_details']['lista_de_compras']) => {
+  const handleExportPDF = (list: ShoppingList) => {
+    if (!list.list_details?.listData?.lista_de_compras) {
+        toast({
+            title: "Lista Vazia",
+            description: "Não é possível exportar uma lista de compras vazia.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    const doc = new jsPDF();
+    const tableData = list.list_details.listData.lista_de_compras.flatMap(category =>
+        category.itens.map(item => [category.categoria, item.item, item.quantidade])
+    );
+
+    doc.text(`Lista de Compras - ${formatDate(list.created_at)}`, 14, 20);
+
+    // Chame o autoTable como uma função, passando o 'doc' como primeiro argumento
+    autoTable(doc, {
+        startY: 30,
+        head: [['Categoria', 'Item', 'Quantidade']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [22, 163, 74] },
+    });
+
+    if (list.list_details.listData.observacoes) {
+        const finalY = (doc as any).lastAutoTable.finalY; // Pega a posição final da tabela
+        doc.setFontSize(12);
+        doc.text("Observações:", 14, finalY + 15);
+        doc.setFontSize(10);
+        const splitText = doc.splitTextToSize(list.list_details.listData.observacoes, 180);
+        doc.text(splitText, 14, finalY + 22);
+    }
+
+    doc.save(`lista-de-compras-${list.created_at.split('T')[0]}.pdf`);
+    toast({
+        title: "PDF Exportado",
+        description: "Sua lista de compras foi exportada com sucesso!"
+    });
+};
+
+  const countTotalItems = (list?: ShoppingList['list_details']['listData']['lista_de_compras']) => {
     if (!list) return 0;
     return list.reduce((total, category) => total + (category.itens?.length || 0), 0);
   }
@@ -136,9 +236,27 @@ export default function ShoppingListsPage() {
                                   <span className="font-semibold text-lg">
                                       Lista de {formatDate(list.created_at)}
                                   </span>
-                                  <Badge variant="secondary">{countTotalItems(list.list_details?.lista_de_compras)} itens</Badge>
+                                  <Badge variant="secondary">{countTotalItems(list.list_details?.listData?.lista_de_compras)} itens</Badge>
                               </div>
                           </AccordionTrigger>
+                           <div className="flex items-center gap-2">
+                             <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleExportPDF(list)}
+                              >
+                                <FileDown className="h-4 w-4 mr-2" />
+                                Exportar PDF
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGenerateMealPlan(list)}
+                                disabled={isGeneratingPlan === list.id}
+                              >
+                                <Utensils className="h-4 w-4 mr-2" />
+                                {isGeneratingPlan === list.id ? "Gerando..." : "Gerar Plano"}
+                              </Button>
                            <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -160,10 +278,11 @@ export default function ShoppingListsPage() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                           </div>
                         </div>
                         <AccordionContent>
                           <div className="space-y-3 p-4 bg-muted/50 rounded-md">
-                              {list.list_details?.lista_de_compras?.map((category, index) => (
+                              {list.list_details?.listData?.lista_de_compras?.map((category, index) => (
                                   <div key={`${category.categoria}-${index}`}>
                                       <h4 className="font-semibold text-primary">{category.categoria}</h4>
                                       <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm space-y-1 mt-1">
@@ -174,11 +293,11 @@ export default function ShoppingListsPage() {
                                   </div>
                               )) ?? <p className="text-sm text-muted-foreground">Não há itens nesta lista.</p>}
                           </div>
-                          {list.list_details?.observacoes && (
+                          {list.list_details?.listData?.observacoes && (
                               <>
                               <hr className="my-4"/>
                               <p className="text-sm text-muted-foreground italic">
-                                  <strong>Observação:</strong> {list.list_details.observacoes}
+                                  <strong>Observação:</strong> {list.list_details.listData.observacoes}
                               </p>
                               </>
                           )}
@@ -196,6 +315,14 @@ export default function ShoppingListsPage() {
           )}
         </CardContent>
       </Card>
+       <Dialog open={isPlanDialogOpen} onOpenChange={setPlanDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Plano Alimentar Gerado</DialogTitle>
+          </DialogHeader>
+          {mealPlan && <MealPlanDisplay mealPlan={mealPlan} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

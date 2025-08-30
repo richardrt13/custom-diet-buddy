@@ -251,7 +251,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 gap-1">
+            <TabsList className="flex flex-wrap h-auto">
                 <TabsTrigger value="dashboard" className="flex items-center gap-1">
                     <TrendingUp className="h-4 w-4" />
                     Dashboard
